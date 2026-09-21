@@ -30,7 +30,7 @@ This patch makes the Snowman Lost His Head star easier by removing the need to m
 Instead, it will always succeed.
 
 ## Exit All Courses
-This patch adds a new button to the Course Pause Screen, allowing you to skip the course chain and go straight back out of the painting you entered initially.
+This patch adds a new button to the Course Pause Screen, allowing you to skip the course chain and go straight back out of the entrance you entered initially.
 
 ## Free Bowser Cam
 This patch gets rid of the restricted 8 directional camera in Bowser Stages when using Free Camera under the BETTERCAMERA make flag.
