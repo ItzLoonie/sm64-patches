@@ -1,0 +1,139 @@
+diff --git a/Makefile b/Makefile
+index 830f3e2..dcd270c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -141,19 +141,16 @@ endif
+ # Release (version) flag defs
+ 
+ ifeq ($(VERSION),jp)
+-  VERSION_DEF := VERSION_JP
++  $(error The patch to combine US and JP ROMs only works if version is us")
+ else
+ ifeq ($(VERSION),us)
+   VERSION_DEF := VERSION_US
+ else
+ ifeq ($(VERSION),eu)
+-  VERSION_DEF := VERSION_EU
++  $(error The patch to combine US and JP ROMs only works if version is us")
+ else
+ ifeq ($(VERSION),sh)
+-  $(warning Building SH is experimental and is prone to breaking. Try at your own risk.)
+-  VERSION_DEF := VERSION_SH
+-# TODO: GET RID OF THIS!!! We should mandate assets for Shindou like EU but we dont have the addresses extracted yet so we'll just pretend you have everything extracted for now.
+-  NOEXTRACT := 1
++  $(error The patch to combine US and JP ROMs only works if version is us")
+ else
+   $(error unknown version "$(VERSION)")
+ endif
+@@ -258,7 +255,7 @@ ifneq ($(MAKECMDGOALS),distclean)
+ # Make sure assets exist
+ NOEXTRACT ?= 0
+ ifeq ($(NOEXTRACT),0)
+-DUMMY != ./extract_assets.py $(VERSION) >&2 || echo FAIL
++DUMMY != ./extract_assets.py $(VERSION) jp >&2 || echo FAIL
+ ifeq ($(DUMMY),FAIL)
+   $(error Failed to extract assets)
+ endif
+diff --git a/bin/segment2.c b/bin/segment2.c
+index a6756e9..952258d 100644
+--- a/bin/segment2.c
++++ b/bin/segment2.c
+@@ -82,11 +82,9 @@ ALIGNED8 static const u8 texture_hud_char_I[] = {
+ #include "textures/segment2/segment2.02400.rgba16.inc.c"
+ };
+ 
+-#if defined(VERSION_JP) || defined(VERSION_SH)
+ ALIGNED8 static const u8 texture_hud_char_J[] = {
+ #include "textures/segment2/segment2.02600.rgba16.inc.c"
+ };
+-#endif
+ 
+ ALIGNED8 static const u8 texture_hud_char_K[] = {
+ #include "textures/segment2/segment2.02800.rgba16.inc.c"
+@@ -112,11 +110,9 @@ ALIGNED8 static const u8 texture_hud_char_P[] = {
+ #include "textures/segment2/segment2.03200.rgba16.inc.c"
+ };
+ 
+-#if defined(VERSION_JP) || defined(VERSION_SH)
+ ALIGNED8 static const u8 texture_hud_char_Q[] = {
+ #include "textures/segment2/segment2.03400.rgba16.inc.c"
+ };
+-#endif
+ 
+ ALIGNED8 static const u8 texture_hud_char_R[] = {
+ #include "textures/segment2/segment2.03600.rgba16.inc.c"
+@@ -134,31 +130,25 @@ ALIGNED8 static const u8 texture_hud_char_U[] = {
+ #include "textures/segment2/segment2.03C00.rgba16.inc.c"
+ };
+ 
+-#if defined(VERSION_JP) || defined(VERSION_EU) || defined(VERSION_SH)
+ ALIGNED8 static const u8 texture_hud_char_V[] = {
+ #include "textures/segment2/segment2.03E00.rgba16.inc.c"
+ };
+-#endif
+ 
+ ALIGNED8 static const u8 texture_hud_char_W[] = {
+ #include "textures/segment2/segment2.04000.rgba16.inc.c"
+ };
+ 
+-#if defined(VERSION_JP) || defined(VERSION_SH)
+ ALIGNED8 static const u8 texture_hud_char_X[] = {
+ #include "textures/segment2/segment2.04200.rgba16.inc.c"
+ };
+-#endif
+ 
+ ALIGNED8 static const u8 texture_hud_char_Y[] = {
+ #include "textures/segment2/segment2.04400.rgba16.inc.c"
+ };
+ 
+-#if defined(VERSION_JP) || defined(VERSION_EU) || defined(VERSION_SH)
+ ALIGNED8 static const u8 texture_hud_char_Z[] = {
+ #include "textures/segment2/segment2.04600.rgba16.inc.c"
+ };
+-#endif
+ 
+ ALIGNED8 static const u8 texture_hud_char_apostrophe[] = {
+ #include "textures/segment2/segment2.04800.rgba16.inc.c"
+@@ -174,7 +164,6 @@ ALIGNED8 static const u8 texture_hud_char_umlaut[] = {
+ };
+ #endif
+ 
+-#if defined(VERSION_JP) || defined(VERSION_SH)
+ ALIGNED8 static const u8 texture_hud_char_exclamation[] = {
+ #include "textures/segment2/segment2.04C00.rgba16.inc.c"// JP !
+ };
+@@ -194,7 +183,6 @@ ALIGNED8 static const u8 texture_hud_char_ampersand[] = {
+ ALIGNED8 static const u8 texture_hud_char_percent[] = {
+ #include "textures/segment2/segment2.05400.rgba16.inc.c"// JP %
+ };
+-#endif
+ 
+ ALIGNED8 static const u8 texture_hud_char_multiply[] = {
+ #include "textures/segment2/segment2.05600.rgba16.inc.c"
+@@ -212,17 +200,13 @@ ALIGNED8 static const u8 texture_hud_char_star[] = {
+ #include "textures/segment2/segment2.05C00.rgba16.inc.c"
+ };
+ 
+-#if defined(VERSION_JP) || defined(VERSION_SH)
+ ALIGNED8 static const u8 texture_hud_char_decimal_point[] = {
+ #include "textures/segment2/segment2.05E00.rgba16.inc.c"
+ };
+-#endif
+ 
+-#if defined(VERSION_JP) || defined(VERSION_SH)
+ ALIGNED8 static const u8 texture_hud_char_beta_key[] = {
+ #include "textures/segment2/segment2.06000.rgba16.inc.c"
+ };
+-#endif
+ 
+ ALIGNED8 static const u8 texture_credits_char_3[] = {
+ #include "textures/segment2/segment2.06200.rgba16.inc.c"
+@@ -1818,7 +1802,7 @@ const u8 *const main_hud_lut[] = {
+                   0x0,               0x0, texture_hud_char_multiply, texture_hud_char_coin,
+     texture_hud_char_mario_head, texture_hud_char_star,               0x0,               0x0,
+     texture_hud_char_apostrophe, texture_hud_char_double_quote, texture_hud_char_umlaut,
+-#elif defined(VERSION_US)
++#elif 0
+     texture_hud_char_0, texture_hud_char_1, texture_hud_char_2, texture_hud_char_3,
+     texture_hud_char_4, texture_hud_char_5, texture_hud_char_6, texture_hud_char_7,
+     texture_hud_char_8, texture_hud_char_9, texture_hud_char_A, texture_hud_char_B,

@@ -1,0 +1,65 @@
+diff --git a/src/game/behaviors/sparkle_spawn_star.inc.c b/src/game/behaviors/sparkle_spawn_star.inc.c
+index b660870..855c454 100644
+--- a/src/game/behaviors/sparkle_spawn_star.inc.c
++++ b/src/game/behaviors/sparkle_spawn_star.inc.c
+@@ -56,9 +56,6 @@ void slow_star_rotation(void) {
+ void bhv_spawned_star_loop(void) {
+     if (o->oAction == 0) {
+         if (o->oTimer == 0) {
+-            cutscene_object(CUTSCENE_STAR_SPAWN, o);
+-            set_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
+-            o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
+             o->oAngleVelYaw = 0x800;
+             if (o->oBehParams2ndByte == 0)
+                 set_home_to_mario();
+@@ -96,11 +93,7 @@ void bhv_spawned_star_loop(void) {
+         }
+         spawn_object(o, MODEL_NONE, bhvSparkleSpawn);
+     } else if (o->oAction == 2) {
+-        if (gCamera->cutscene == 0 && gRecentCutscene == 0) {
+-            clear_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
+-            o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
+-            o->oAction++;
+-        }
++        o->oAction++;
+     } else {
+         set_sparkle_spawn_star_hitbox();
+         slow_star_rotation();
+diff --git a/src/game/behaviors/spawn_star.inc.c b/src/game/behaviors/spawn_star.inc.c
+index 9a194a5..2122589 100644
+--- a/src/game/behaviors/spawn_star.inc.c
++++ b/src/game/behaviors/spawn_star.inc.c
+@@ -42,14 +42,6 @@ void bhv_star_spawn_init(void) {
+     o->oVelY = (o->oHomeY - o->oPosY) / 30.0f;
+     o->oForwardVel = o->oStarSpawnDisFromHome / 30.0f;
+     o->oStarSpawnUnkFC = o->oPosY;
+-    if (o->oBehParams2ndByte == 0 || gCurrCourseNum == COURSE_BBH)
+-        cutscene_object(CUTSCENE_STAR_SPAWN, o);
+-    else
+-        cutscene_object(CUTSCENE_RED_COIN_STAR_SPAWN, o);
+-
+-    set_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
+-    o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
+-    cur_obj_become_intangible();
+ }
+ 
+ void bhv_star_spawn_loop(void) {
+@@ -100,13 +92,13 @@ void bhv_star_spawn_loop(void) {
+                 clear_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
+                 o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
+             }
+-
+-            if (o->oInteractStatus & INT_STATUS_INTERACTED) {
+-                mark_obj_for_deletion(o);
+-                o->oInteractStatus = 0;
+-            }
+             break;
+     }
++
++    if (o->oInteractStatus & INT_STATUS_INTERACTED) {
++        mark_obj_for_deletion(o);
++        o->oInteractStatus = 0;
++    }
+ }
+ 
+ struct Object *spawn_star(struct Object *sp30, f32 sp34, f32 sp38, f32 sp3C) {

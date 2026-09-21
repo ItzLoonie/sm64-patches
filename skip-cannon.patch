@@ -1,0 +1,17 @@
+diff --git a/src/game/behaviors/bobomb.inc.c b/src/game/behaviors/bobomb.inc.c
+index 9bf276e..b437967 100644
+--- a/src/game/behaviors/bobomb.inc.c
++++ b/src/game/behaviors/bobomb.inc.c
+@@ -330,12 +330,6 @@ void bobomb_buddy_cannon_dialog(s16 dialogFirstText, s16 dialogSecondText) {
+             break;
+ 
+         case BOBOMB_BUDDY_CANNON_OPENING:
+-            cannonClosed = cur_obj_nearest_object_with_behavior(bhvCannonClosed);
+-            cutscene = cutscene_object(CUTSCENE_PREPARE_CANNON, cannonClosed);
+-            if (cutscene == -1)
+-                o->oBobombBuddyCannonStatus = BOBOMB_BUDDY_CANNON_OPENED;
+-            break;
+-
+         case BOBOMB_BUDDY_CANNON_OPENED:
+             buddyText = cutscene_object_with_dialog(CUTSCENE_DIALOG, o, dialogSecondText);
+             if (buddyText != 0)

@@ -1,0 +1,177 @@
+diff --git a/src/game/behaviors/sparkle_spawn_star.inc.c b/src/game/behaviors/sparkle_spawn_star.inc.c
+index b660870..82ad7b7 100644
+--- a/src/game/behaviors/sparkle_spawn_star.inc.c
++++ b/src/game/behaviors/sparkle_spawn_star.inc.c
+@@ -55,57 +55,31 @@ void slow_star_rotation(void) {
+ 
+ void bhv_spawned_star_loop(void) {
+     if (o->oAction == 0) {
+-        if (o->oTimer == 0) {
+-            cutscene_object(CUTSCENE_STAR_SPAWN, o);
+-            set_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
+-            o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
+-            o->oAngleVelYaw = 0x800;
+-            if (o->oBehParams2ndByte == 0)
+-                set_home_to_mario();
+-            else
+-                set_y_home_to_pos();
+-            o->oMoveAngleYaw = cur_obj_angle_to_home();
+-            o->oVelY = 50.0f;
+-            o->oGravity = -4.0f;
+-            spawn_mist_particles();
+-        }
+-        cur_obj_play_sound_1(SOUND_ENV_STAR);
+-        spawn_object(o, MODEL_NONE, bhvSparkleSpawn);
+-        if (o->oVelY < 0 && o->oPosY < o->oHomeY) {
+-            o->oAction++;
+-            o->oForwardVel = 0;
+-            o->oVelY = 20.0f;
+-            o->oGravity = -1.0f;
+-            if (o->oInteractionSubtype & INT_SUBTYPE_NO_EXIT)
++        if (o->oBehParams2ndByte == 0)
++            set_home_to_mario();
++        else
++            set_y_home_to_pos();
++        o->oPosX = o->oHomeX;
++        o->oPosY = o->oHomeY;
++        o->oPosZ = o->oHomeZ;
++        o->oAngleVelYaw = 0x400;
++        gObjCutsceneDone = TRUE;
++        o->oVelY = 0;
++        o->oForwardVel = 0;
++        o->oGravity = 0;
++        if (o->oInteractionSubtype & INT_SUBTYPE_NO_EXIT)
+ #ifdef VERSION_JP
+-                play_power_star_jingle(FALSE);
++            play_power_star_jingle(FALSE);
+ #else
+-                play_power_star_jingle(TRUE);
++            play_power_star_jingle(TRUE);
+ #endif
+-            else
+-                play_power_star_jingle(TRUE);
+-        }
+-    } else if (o->oAction == 1) {
+-        if (o->oVelY < -4.0f)
+-            o->oVelY = -4.0f;
+-        if (o->oVelY < 0 && o->oPosY < o->oHomeY) {
+-            gObjCutsceneDone = TRUE;
+-            o->oVelY = 0;
+-            o->oGravity = 0;
+-            o->oAction++;
+-        }
+-        spawn_object(o, MODEL_NONE, bhvSparkleSpawn);
+-    } else if (o->oAction == 2) {
+-        if (gCamera->cutscene == 0 && gRecentCutscene == 0) {
+-            clear_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
+-            o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
+-            o->oAction++;
+-        }
+-    } else {
+-        set_sparkle_spawn_star_hitbox();
+-        slow_star_rotation();
++        else
++            play_power_star_jingle(TRUE);
++        clear_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
++        o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
++        o->oAction = 3;
+     }
+-    cur_obj_move_using_fvel_and_gravity();
++    set_sparkle_spawn_star_hitbox();
+     o->oFaceAngleYaw += o->oAngleVelYaw;
+     o->oInteractStatus = 0;
+ }
+diff --git a/src/game/behaviors/spawn_star.inc.c b/src/game/behaviors/spawn_star.inc.c
+index 9a194a5..bcdef6d 100644
+--- a/src/game/behaviors/spawn_star.inc.c
++++ b/src/game/behaviors/spawn_star.inc.c
+@@ -37,77 +37,32 @@ void bhv_collect_star_loop(void) {
+ }
+ 
+ void bhv_star_spawn_init(void) {
+-    o->oMoveAngleYaw = atan2s(o->oHomeZ - o->oPosZ, o->oHomeX - o->oPosX);
+-    o->oStarSpawnDisFromHome = sqrtf(sqr(o->oHomeX - o->oPosX) + sqr(o->oHomeZ - o->oPosZ));
+-    o->oVelY = (o->oHomeY - o->oPosY) / 30.0f;
+-    o->oForwardVel = o->oStarSpawnDisFromHome / 30.0f;
++    o->oStarSpawnDisFromHome = 0;
+     o->oStarSpawnUnkFC = o->oPosY;
+-    if (o->oBehParams2ndByte == 0 || gCurrCourseNum == COURSE_BBH)
+-        cutscene_object(CUTSCENE_STAR_SPAWN, o);
+-    else
+-        cutscene_object(CUTSCENE_RED_COIN_STAR_SPAWN, o);
+-
+-    set_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
+-    o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
+-    cur_obj_become_intangible();
+ }
+ 
+ void bhv_star_spawn_loop(void) {
+     switch (o->oAction) {
+-        case 0:
+-            o->oFaceAngleYaw += 0x1000;
+-            if (o->oTimer > 20)
+-                o->oAction = 1;
+-            break;
+-
+-        case 1:
+-            obj_move_xyz_using_fvel_and_yaw(o);
+-            o->oStarSpawnUnkFC += o->oVelY;
+-            o->oPosY = o->oStarSpawnUnkFC + sins((o->oTimer * 0x8000) / 30) * 400.0f;
+-            o->oFaceAngleYaw += 0x1000;
+-            spawn_object(o, MODEL_NONE, bhvSparkleSpawn);
+-            cur_obj_play_sound_1(SOUND_ENV_STAR);
+-            if (o->oTimer == 30) {
+-                o->oAction = 2;
+-                o->oForwardVel = 0;
+-                play_power_star_jingle(TRUE);
+-            }
+-            break;
+-
+-        case 2:
+-            if (o->oTimer < 20)
+-                o->oVelY = 20 - o->oTimer;
+-            else
+-                o->oVelY = -10.0f;
+-
+-            spawn_object(o, MODEL_NONE, bhvSparkleSpawn);
+-            obj_move_xyz_using_fvel_and_yaw(o);
+-            o->oFaceAngleYaw = o->oFaceAngleYaw - o->oTimer * 0x10 + 0x1000;
+-            cur_obj_play_sound_1(SOUND_ENV_STAR);
+-
+-            if (o->oPosY < o->oHomeY) {
+-                cur_obj_play_sound_2(SOUND_GENERAL_STAR_APPEARS);
+-                cur_obj_become_tangible();
+-                o->oPosY = o->oHomeY;
+-                o->oAction = 3;
+-            }
+-            break;
+-
+         case 3:
+             o->oFaceAngleYaw += 0x800;
+-            if (o->oTimer == 20) {
+-                gObjCutsceneDone = TRUE;
+-                clear_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
+-                o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
+-            }
+ 
+             if (o->oInteractStatus & INT_STATUS_INTERACTED) {
+                 mark_obj_for_deletion(o);
+                 o->oInteractStatus = 0;
+             }
+             break;
++        default:
++            play_power_star_jingle(TRUE);
++            o->oPosX = o->oHomeX;
++            o->oPosY = o->oHomeY;
++            o->oPosZ = o->oHomeZ;
++            gObjCutsceneDone = TRUE;
++            clear_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
++            o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
++            o->oAction = 3;
++            break;
++        }
+     }
+-}
+ 
+ struct Object *spawn_star(struct Object *sp30, f32 sp34, f32 sp38, f32 sp3C) {
+     sp30 = spawn_object_abs_with_rot(o, 0, MODEL_STAR, bhvStarSpawnCoordinates, o->oPosX, o->oPosY,
