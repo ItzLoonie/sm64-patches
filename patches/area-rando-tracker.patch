@@ -1,8 +1,6 @@
-diff --git a/src/game/ingame_menu.c b/src/game/ingame_menu.c
-index 81b2299..9c9d70b 100644
 --- a/src/game/ingame_menu.c
 +++ b/src/game/ingame_menu.c
-@@ -2544,6 +2544,12 @@ enum PauseUnlockViewType {
+@@ -2544,6 +2544,12 @@
      PAUSE_UNLOCK_VIEW_COURSE,
      PAUSE_UNLOCK_VIEW_CASTLE,
      PAUSE_UNLOCK_VIEW_SECRET,
@@ -15,7 +13,7 @@ index 81b2299..9c9d70b 100644
  };
  
  struct PauseUnlockView {
-@@ -2607,6 +2613,63 @@ static const u8 sPauseViewTotwc[] = { TEXT_PAUSE_VIEW_TOTWC };
+@@ -2607,6 +2613,63 @@
  static const u8 sPauseViewWmotr[] = { TEXT_PAUSE_VIEW_WMOTR };
  static const u8 sPauseViewPss[] = { TEXT_PAUSE_VIEW_PSS };
  static const u8 sPauseViewSa[] = { TEXT_PAUSE_VIEW_SA };
@@ -79,7 +77,7 @@ index 81b2299..9c9d70b 100644
  
  static const u8 sMoveDouble[] = { TEXT_DOUBLE_JUMP };
  static const u8 sMoveTriple[] = { TEXT_TRIPLE_JUMP };
-@@ -2754,6 +2817,325 @@ static const u8 sPaintingWmotr[] = {
+@@ -2754,6 +2817,347 @@
      ASCII_TO_DIALOG('R'), DIALOG_CHAR_SPACE, DIALOG_CHAR_TERMINATOR
  };
  
@@ -116,6 +114,28 @@ index 81b2299..9c9d70b 100644
 +static const u8 sPauseEntranceTtcFast[] = {
 +    ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('C'), DIALOG_CHAR_SPACE,
 +    ASCII_TO_DIALOG('F'), ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('T'), DIALOG_CHAR_TERMINATOR
++};
++
++// Source-side (left column) labels only, used in sPauseEntranceRows so the
++// TTC clock-arm-speed rows read as clock positions ("TTC 12/3/6/9") on
++// page 1. pause_entrance_dest_label() keeps the STP/SLW/RND/FST labels
++// above for when one of these entrances shows up as a randomized
++// destination on the right side of another row.
++static const u8 sPauseEntranceTtc12[] = {
++    ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('C'), DIALOG_CHAR_SPACE,
++    ASCII_TO_DIALOG('1'), ASCII_TO_DIALOG('2'), DIALOG_CHAR_TERMINATOR
++};
++static const u8 sPauseEntranceTtc3[] = {
++    ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('C'), DIALOG_CHAR_SPACE,
++    ASCII_TO_DIALOG('3'), DIALOG_CHAR_TERMINATOR
++};
++static const u8 sPauseEntranceTtc6[] = {
++    ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('C'), DIALOG_CHAR_SPACE,
++    ASCII_TO_DIALOG('6'), DIALOG_CHAR_TERMINATOR
++};
++static const u8 sPauseEntranceTtc9[] = {
++    ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('C'), DIALOG_CHAR_SPACE,
++    ASCII_TO_DIALOG('9'), DIALOG_CHAR_TERMINATOR
 +};
 +
 +// Maps a destination LEVEL_ constant to the same short label already used
@@ -204,7 +224,7 @@ index 81b2299..9c9d70b 100644
 +/// SSL Pyramid Side
 +static const u8 sSubAreaSslPyramidSide[] = {
 +    ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('L'), DIALOG_CHAR_SPACE,
-+    ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('D'), ASCII_TO_DIALOG('E'), DIALOG_CHAR_TERMINATOR
++    ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('M'), DIALOG_CHAR_TERMINATOR
 +};
 +/// SSL Pyramid Top
 +static const u8 sSubAreaSslPyramidTop[] = {
@@ -218,18 +238,18 @@ index 81b2299..9c9d70b 100644
 +};
 +// BITDW Bowser
 +static const u8 sSubAreaBitdwBowser[] = {
-+    ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('I'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('D'),
-+    ASCII_TO_DIALOG('W'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('B'), DIALOG_CHAR_TERMINATOR
++    ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('W'), ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('R'),
++    DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('1'), DIALOG_CHAR_TERMINATOR
 +}; 
 +// BITFS Bowser
 +static const u8 sSubAreaBitfsBowser[] = {
-+    ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('I'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('F'),
-+    ASCII_TO_DIALOG('S'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('B'), DIALOG_CHAR_TERMINATOR
++    ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('W'), ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('R'),
++    DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('2'), DIALOG_CHAR_TERMINATOR
 +};
 +// BITS Bowser
 +static const u8 sSubAreaBitsBowser[] = {
-+    ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('I'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('S'),
-+    DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('B'), DIALOG_CHAR_TERMINATOR
++    ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('W'), ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('R'),
++    DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('3'), DIALOG_CHAR_TERMINATOR
 +};
 +// CCM Slide Exit
 +static const u8 sSubAreaCcmSlideExit[] = {
@@ -358,10 +378,10 @@ index 81b2299..9c9d70b 100644
 +    { SM64AP_ENTRANCE_ID(LEVEL_WDW, SM64AP_ENTRANCE_WDW_HIGH),   sPauseEntranceWdwHigh },
 +    { SM64AP_ENTRANCE_ID(LEVEL_THI, 1), sPaintingThiHuge },
 +    { SM64AP_ENTRANCE_ID(LEVEL_THI, 2), sPaintingThiTiny },
-+    { SM64AP_ENTRANCE_ID(LEVEL_TTC, SM64AP_ENTRANCE_TTC_STOPPED), sPauseEntranceTtcStopped },
-+    { SM64AP_ENTRANCE_ID(LEVEL_TTC, SM64AP_ENTRANCE_TTC_SLOW),    sPauseEntranceTtcSlow },
-+    { SM64AP_ENTRANCE_ID(LEVEL_TTC, SM64AP_ENTRANCE_TTC_RANDOM),  sPauseEntranceTtcRandom },
-+    { SM64AP_ENTRANCE_ID(LEVEL_TTC, SM64AP_ENTRANCE_TTC_FAST),    sPauseEntranceTtcFast },
++    { SM64AP_ENTRANCE_ID(LEVEL_TTC, SM64AP_ENTRANCE_TTC_STOPPED), sPauseEntranceTtc12 },
++    { SM64AP_ENTRANCE_ID(LEVEL_TTC, SM64AP_ENTRANCE_TTC_SLOW),    sPauseEntranceTtc3 },
++    { SM64AP_ENTRANCE_ID(LEVEL_TTC, SM64AP_ENTRANCE_TTC_RANDOM),  sPauseEntranceTtc6 },
++    { SM64AP_ENTRANCE_ID(LEVEL_TTC, SM64AP_ENTRANCE_TTC_FAST),    sPauseEntranceTtc9 },
 +    { SM64AP_ENTRANCE_ID(LEVEL_RR, 1),  sPaintingRr },
 +};
 +
@@ -405,7 +425,7 @@ index 81b2299..9c9d70b 100644
  static const struct PauseUnlockView sPauseUnlockViews[] = {
      { PAUSE_UNLOCK_VIEW_CASTLE, COURSE_NONE, LEVEL_CASTLE, SM64AP_LEVEL_MOVE_AREA_CASTLE, SM64AP_LEVEL_MOVE_AREA_CASTLE, sPauseViewCastle },
      { PAUSE_UNLOCK_VIEW_COURSE, COURSE_BOB - 1, LEVEL_BOB, SM64AP_LEVEL_MOVE_AREA_BOB, SM64AP_LEVEL_MOVE_AREA_BOB, NULL },
-@@ -2780,6 +3162,7 @@ static const struct PauseUnlockView sPauseUnlockViews[] = {
+@@ -2780,6 +3184,7 @@
      { PAUSE_UNLOCK_VIEW_SECRET, COURSE_COTMC - 1, LEVEL_COTMC, SM64AP_LEVEL_MOVE_AREA_COTMC, PAUSE_COURSE_UNLOCK_AREA_COTMC, sPauseViewCotmc },
      { PAUSE_UNLOCK_VIEW_SECRET, COURSE_TOTWC - 1, LEVEL_TOTWC, SM64AP_LEVEL_MOVE_AREA_TOTWC, PAUSE_COURSE_UNLOCK_AREA_TOTWC, sPauseViewTotwc },
      { PAUSE_UNLOCK_VIEW_SECRET, COURSE_WMOTR - 1, LEVEL_WMOTR, SM64AP_LEVEL_MOVE_AREA_WMOTR, PAUSE_COURSE_UNLOCK_AREA_WMOTR, sPauseViewWmotr },
@@ -413,7 +433,24 @@ index 81b2299..9c9d70b 100644
  };
  
  static const struct PauseMoveUnlock sPauseMoveUnlocks[] = {
-@@ -3288,6 +3671,9 @@ static void render_pause_castle_unlocks(s16 x, s16 y);
+@@ -3178,6 +3583,16 @@
+     return &sPauseUnlockViews[viewIndex];
+ }
+ 
++static s16 pause_unlock_view_index_for_type(enum PauseUnlockViewType type) {
++    for (s16 i = 0; i < pause_unlock_view_count(); i++) {
++        if (sPauseUnlockViews[i].type == type) {
++            return i;
++        }
++    }
++
++    return 0;
++}
++
+ static void render_pause_move_unlocks(s16 x, s16 y, s16 moveArea, s16 levelNum) {
+     static const u8 textNotApplicable[] = { TEXT_PAINTING_NA };
+     static const s16 statusX = 112;
+@@ -3288,6 +3703,9 @@
  static void render_pause_level_unlocks(s16 x, s16 y);
  static void render_pause_upgrades(s16 x, s16 y);
  
@@ -423,7 +460,7 @@ index 81b2299..9c9d70b 100644
  static void render_pause_unlock_view_page(s16 viewIndex) {
      const struct PauseUnlockView *view = pause_unlock_view_at(viewIndex);
      static const u8 textPageOne[] = { TEXT_PAGE_1 };
-@@ -3323,6 +3709,8 @@ static void render_pause_unlock_view_page(s16 viewIndex) {
+@@ -3323,6 +3741,8 @@
          -8, 140 + contentYOffset,
          view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 1 ? sPauseViewLevels
          : view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 2 ? sPauseViewUpgrades
@@ -432,7 +469,7 @@ index 81b2299..9c9d70b 100644
          : pause_unlock_view_title(view));
      print_generic_string(
          266, 140 + contentYOffset,
-@@ -3330,14 +3718,23 @@ static void render_pause_unlock_view_page(s16 viewIndex) {
+@@ -3330,14 +3750,23 @@
          : view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 1 ? textCastlePageTwo
          : view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 2 ? textPageThree
          : sPauseUnlockPage == 0 ? textPageOne : textPageTwo);
@@ -458,7 +495,7 @@ index 81b2299..9c9d70b 100644
          gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
          gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, gDialogTextAlpha);
          render_pause_level_unlocks(74, 122 + contentYOffset);
-@@ -3466,6 +3863,232 @@ static void render_pause_upgrades(s16 x, s16 y) {
+@@ -3466,6 +3895,233 @@
      }
  }
  
@@ -466,7 +503,8 @@ index 81b2299..9c9d70b 100644
 +// the same right-pointing triangle display list already used elsewhere in
 +// this file as the menu cursor/selection arrow.
 +static void render_pause_entrance_arrow(s16 x, s16 y) {
-+    create_dl_translation_matrix(MENU_MTX_PUSH, x, y, 0);
++    create_dl_translation_matrix(MENU_MTX_PUSH, x, y + 4, 0);
++    create_dl_scale_matrix(MENU_MTX_NOPUSH, 1.0f, 0.573f, 1.0f);
 +    gSPDisplayList(gDisplayListHead++, dl_draw_triangle);
 +    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
 +
@@ -691,18 +729,105 @@ index 81b2299..9c9d70b 100644
  static void handle_pause_unlock_page_scrolling(s8 pageCount) {
      s8 requestedPage = sPauseUnlockPage;
  
-@@ -4120,4 +4743,4 @@ s16 render_menus_and_dialogs() {
+@@ -3569,11 +4225,11 @@
+ }
+ 
+ static bool pause_course_unlock_view_close_pressed(void) {
+-#ifdef VERSION_EU
+-    return gPlayer3Controller->buttonPressed & (A_BUTTON | B_BUTTON | Z_TRIG);
+-#else
+-    return gPlayer3Controller->buttonPressed & (A_BUTTON | B_BUTTON);
+-#endif
++    return gPlayer3Controller->buttonPressed & B_BUTTON;
++}
++
++static bool pause_course_unlock_view_jump_pressed(void) {
++    return gPlayer3Controller->buttonPressed & A_BUTTON;
+ }
+ 
+ static bool pause_menu_start_pressed(void) {
+@@ -3639,9 +4295,43 @@
+                     sPauseCourseUnlockViewOpen = false;
+                     return 1;
+                 } else if (pause_course_unlock_view_close_pressed()) {
+-                    play_sound(SOUND_MENU_CHANGE_SELECT, gDefaultSoundArgs);
+-                    sPauseCourseUnlockViewOpen = false;
+-                    gDialogLineNum = 2;
++                    // This view can now be opened directly from the
++                    // castle-grounds pause menu (DIALOG_STATE_HORIZONTAL, see
++                    // the A-button shortcut below), which happens whenever
++                    // gCurrCourseNum isn't an actual course. The rendering
++                    // just below this block (score/coins/course options)
++                    // assumes a real course is active, so closing back into
++                    // DIALOG_STATE_VERTICAL here would render corrupt course
++                    // text and crash on selecting any option. Rather than
++                    // reconstruct DIALOG_STATE_HORIZONTAL's own setup (it's
++                    // normally only entered fresh from DIALOG_STATE_OPENING,
++                    // which also runs highlight_last_course_complete_stars()
++                    // that we'd otherwise be skipping), just don't act:
++                    // Start still unpauses cleanly from here regardless.
++                    if (gCurrCourseNum >= COURSE_MIN && gCurrCourseNum <= COURSE_MAX) {
++                        play_sound(SOUND_MENU_CHANGE_SELECT, gDefaultSoundArgs);
++                        sPauseCourseUnlockViewOpen = false;
++                        gDialogLineNum = 2;
++                    }
++                } else if (pause_course_unlock_view_jump_pressed()) {
++                    if (pause_unlock_view_at(sPauseUnlockViewIndex)->type == PAUSE_UNLOCK_VIEW_ENTRANCES) {
++                        // Same non-course case as pause_course_unlock_view_close_pressed()
++                        // above, and same fix: no-op instead of closing when
++                        // there's no real course to fall back to.
++                        if (gCurrCourseNum >= COURSE_MIN && gCurrCourseNum <= COURSE_MAX) {
++                            play_sound(SOUND_MENU_CHANGE_SELECT, gDefaultSoundArgs);
++                            sPauseCourseUnlockViewOpen = false;
++                            gDialogLineNum = 2;
++                        }
++                    } else {
++                        s16 entrancesIndex = pause_unlock_view_index_for_type(PAUSE_UNLOCK_VIEW_ENTRANCES);
++
++                        if (entrancesIndex != sPauseUnlockViewIndex) {
++                            play_sound(SOUND_MENU_CHANGE_SELECT, gDefaultSoundArgs);
++                            sPauseUnlockViewIndex = entrancesIndex;
++                            sPauseUnlockPage = 0;
++                        }
++                    }
+                 }
+                 break;
+             }
+@@ -3682,7 +4372,23 @@
+             render_pause_level_items_box(160, 143);
+             render_pause_castle_main_strings(104, 60);
+ 
+-            if (pause_menu_confirm_pressed()) {
++            // Entrance tracker shortcut, castle-grounds/non-course flavor:
++            // DIALOG_STATE_HORIZONTAL is used instead of DIALOG_STATE_VERTICAL
++            // whenever gCurrCourseNum isn't an actual course (see
++            // DIALOG_STATE_OPENING above), so the A-button jump handled
++            // above under DIALOG_STATE_VERTICAL's sPauseCourseUnlockViewOpen
++            // block is unreachable outside of a stage - the shortcut needs
++            // its own entry point here. Checked before pause_menu_confirm_pressed()
++            // (which also treats A as "resume game") so A opens the tracker;
++            // Start still resumes normally via the branch below.
++            if (pause_course_unlock_view_jump_pressed()) {
++                play_sound(SOUND_MENU_CHANGE_SELECT, gDefaultSoundArgs);
++                sPauseUnlockViewIndex = pause_unlock_view_index_for_type(PAUSE_UNLOCK_VIEW_ENTRANCES);
++                sPauseUnlockPage = 0;
++                sPauseCourseUnlockViewOpen = true;
++                gDialogLineNum = 2;
++                gDialogBoxState = DIALOG_STATE_VERTICAL;
++            } else if (pause_menu_confirm_pressed()) {
+                 level_set_transition(0, 0);
+                 play_sound(SOUND_MENU_PAUSE_2, gDefaultSoundArgs);
+                 gMenuMode = -1;
+@@ -4120,4 +4826,4 @@
      }
      gDPNoOpTag(gDisplayListHead++, SM64AP_VISUAL_TAG_BASE | SM64AP_VISUAL_NORMAL);
      return mode;
 -}
 +}
 \ No newline at end of file
-diff --git a/src/game/ingame_menu.h b/src/game/ingame_menu.h
-index fb8570f..87ee563 100644
 --- a/src/game/ingame_menu.h
 +++ b/src/game/ingame_menu.h
-@@ -95,6 +95,7 @@ enum DialogSpecialChars {
+@@ -95,6 +95,7 @@
      DIALOG_CHAR_PERIOD = 0x6E,
      DIALOG_CHAR_COMMA = 0x6F,
      DIALOG_CHAR_SPACE = 0x9E,
@@ -710,11 +835,9 @@ index fb8570f..87ee563 100644
      DIALOG_CHAR_STAR_COUNT = 0xE0, // number of stars
      DIALOG_CHAR_UMLAUT = 0xE9,
      DIALOG_CHAR_DAKUTEN = 0xF0,
-diff --git a/src/sm64ap.cpp b/src/sm64ap.cpp
-index 25a9a31..f89b14b 100644
 --- a/src/sm64ap.cpp
 +++ b/src/sm64ap.cpp
-@@ -273,6 +273,14 @@ static bool sm64_cannon_flags_storage_received = false;
+@@ -273,6 +273,14 @@
  static int sm64_coin_scores_storage_received = 0;
  static u32 sm64_server_save_flags = 0;
  static u32 sm64_server_cannon_flags = 0;
@@ -729,7 +852,7 @@ index 25a9a31..f89b14b 100644
  static int sm64_server_coin_high_scores[COURSE_STAGES_COUNT] = {};
  static int sm64_title_connection_wait_frames = 0;
  static void SM64AP_LoadPermanentCoins(const std::string &rawLedger);
-@@ -2798,6 +2806,59 @@ static void SM64AP_DiscoverRandomizedSource(int sourceId) {
+@@ -2801,6 +2809,59 @@
      }
  }
  
@@ -789,7 +912,7 @@ index 25a9a31..f89b14b 100644
  static void SM64AP_SetTTCEntranceVariantSpeed(int variant) {
      switch (variant) {
          case SM64AP_ENTRANCE_TTC_STOPPED:
-@@ -4552,6 +4613,14 @@ void SM64AP_SetReplyHandler(AP_SetReply reply) {
+@@ -4640,6 +4701,14 @@
      } else if (reply.key == AP_GetPrivateServerDataPrefix() + "CannonFlags") {
          sm64_server_cannon_flags = *(int *) reply.value;
          sm64_cannon_flags_storage_received = true;
@@ -804,7 +927,7 @@ index 25a9a31..f89b14b 100644
      } else if (reply.key == sm64_permanent_coin_ledger_key) {
          SM64AP_LoadPermanentCoins(*(std::string *) reply.value);
          sm64_permanent_coin_storage_received = true;
-@@ -4668,6 +4737,11 @@ void SM64AP_GenericInit() {
+@@ -4756,6 +4825,11 @@
      sm64_pending_coin_completion_checks.clear();
      sm64_finished_bowser_flags = 0;
      sm64_finished_bowser_storage_received = false;
@@ -816,7 +939,7 @@ index 25a9a31..f89b14b 100644
      sm64_moat_storage_received = false;
      sm64_permanent_coin_storage_received = false;
      sm64_save_flags_storage_received = false;
-@@ -6655,6 +6729,15 @@ static void SM64AP_InitializeServerStorage() {
+@@ -6747,6 +6821,15 @@
          std::string key = prefix + "CoinHighScore;" + std::to_string(course);
          integerStorageKeys[key] = AP_DataType::Int;
      }
@@ -832,11 +955,9 @@ index 25a9a31..f89b14b 100644
      AP_SetNotify(integerStorageKeys, false);
      for (const auto &entry : integerStorageKeys) {
          SM64AP_SetServerInt(entry.first, "default", 0);
-diff --git a/src/sm64ap.h b/src/sm64ap.h
-index fca699b..2ee41a5 100644
 --- a/src/sm64ap.h
 +++ b/src/sm64ap.h
-@@ -540,6 +540,12 @@ AP_EXTERN_C bool SM64AP_HaveProgressiveMips(int);
+@@ -543,6 +543,12 @@
  AP_EXTERN_C int SM64AP_MipsSpawnTier(void);
  AP_EXTERN_C bool SM64AP_HaveWingCapLight();
  AP_EXTERN_C bool SM64AP_HaveBBH();

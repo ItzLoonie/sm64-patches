@@ -1,0 +1,114 @@
+diff --git a/src/game/ingame_menu.c b/src/game/ingame_menu.c
+index b9dc8b0..dd32a37 100644
+--- a/src/game/ingame_menu.c
++++ b/src/game/ingame_menu.c
+@@ -3746,10 +3746,8 @@ static s16 pause_unlock_view_coin_course(const struct PauseUnlockView *view) {
+     return view->courseNum + COURSE_MIN;
+ }
+ 
+-// Appends " - <star icons>, $<coins>[/<peak>]" to baseTitle into dest, showing this save's
+-// star progress for the page and its Permanent Coin Collection total. Some outputs spend
+-// permanent coins, so the current total can drop after it peaks; when that's happened we
+-// show it as current/peak instead of silently reporting the lower number.
++// Appends " - <star icons> $<coins>" to baseTitle into dest, showing this save's
++// star progress for the page and its current Permanent Coin Collection total.
+ static void pause_append_stage_stats(const u8 *baseTitle, u8 *dest, s16 maxLength,
+                                       const struct PauseUnlockView *view) {
+     s16 i = 0;
+@@ -3760,7 +3758,6 @@ static void pause_append_stage_stats(const u8 *baseTitle, u8 *dest, s16 maxLengt
+         ? save_file_get_star_flags(gCurrSaveFileNum - 1, -1)
+         : save_file_get_star_flags(gCurrSaveFileNum - 1, view->courseNum);
+     s32 coinTotal = SM64AP_GetPermanentCoinTotal(coinCourse);
+-    s32 coinPeak = SM64AP_GetPermanentCoinPeak(coinCourse);
+     u8 digits[4];
+ 
+     while (baseTitle[i] != DIALOG_CHAR_TERMINATOR && i < maxLength - 1) {
+@@ -3778,8 +3775,7 @@ static void pause_append_stage_stats(const u8 *baseTitle, u8 *dest, s16 maxLengt
+ 
+     // Skip the coin readout entirely if there's nothing to report (e.g. Castle,
+     // where Permanent Coin Collection data isn't tracked) rather than showing "$0".
+-    if (coinTotal != 0 || coinPeak != 0) {
+-        if (i < maxLength - 1) dest[i++] = DIALOG_CHAR_COMMA;
++    if (coinTotal != 0) {
+         if (i < maxLength - 1) dest[i++] = DIALOG_CHAR_SPACE;
+         if (i < maxLength - 1) dest[i++] = SM64AP_DIALOG_CHAR_DOLLAR;
+ 
+@@ -3787,14 +3783,6 @@ static void pause_append_stage_stats(const u8 *baseTitle, u8 *dest, s16 maxLengt
+         for (d = 0; digits[d] != DIALOG_CHAR_TERMINATOR && i < maxLength - 1; d++) {
+             dest[i++] = digits[d];
+         }
+-
+-        if (coinPeak > coinTotal) {
+-            if (i < maxLength - 1) dest[i++] = DIALOG_CHAR_SLASH;
+-            int_to_str(coinPeak, digits);
+-            for (d = 0; digits[d] != DIALOG_CHAR_TERMINATOR && i < maxLength - 1; d++) {
+-                dest[i++] = digits[d];
+-            }
+-        }
+     }
+ 
+     dest[i] = DIALOG_CHAR_TERMINATOR;
+diff --git a/src/sm64ap.cpp b/src/sm64ap.cpp
+index 0276b18..9e2b841 100644
+--- a/src/sm64ap.cpp
++++ b/src/sm64ap.cpp
+@@ -251,11 +251,6 @@ static const SM64APCoinSemanticSourceCatalogEntry sm64_coin_semantic_source_cata
+ };
+ 
+ static std::map<std::pair<u64, u8>, SM64APPermanentCoinRecord> sm64_permanent_coins;
+-// High-water mark of SM64AP_GetPermanentCoinTotal() per course, indexed by CourseNum.
+-// Session-only (not persisted): tracks the highest current total seen so far so
+-// the Level Items screen can report a spent coin as "current/peak" instead of
+-// just silently showing a lower number.
+-static s16 sm64_permanent_coin_peak[COURSE_MAX + 1];
+ static std::map<std::pair<u64, u8>, SM64APPermanentCoinRecord> sm64_permanent_coin_updates;
+ static std::map<std::pair<u64, u8>, SM64APPermanentCoinRecord> sm64_pending_permanent_coins;
+ static std::set<std::pair<u64, u8>> sm64_uncollected_coin_tombstones;
+@@ -7163,8 +7158,7 @@ int SM64AP_CollectedPermanentRedCoins(int course) {
+ }
+ 
+ // Current Permanent Coin Collection total for a course (sum of every coin still
+-// held for that course). This can go down over time, since some outputs spend
+-// permanent coins, which is why SM64AP_GetPermanentCoinPeak exists below.
++// held for that course).
+ int SM64AP_GetPermanentCoinTotal(int course) {
+     int total = 0;
+ 
+@@ -7176,21 +7170,6 @@ int SM64AP_GetPermanentCoinTotal(int course) {
+     return total;
+ }
+ 
+-// Highest Permanent Coin Collection total ever observed for a course this session.
+-// Calling this also feeds the current total into the high-water mark, so the Level
+-// Items screen can show "current/peak" if a coin was spent since the peak.
+-int SM64AP_GetPermanentCoinPeak(int course) {
+-    int total = SM64AP_GetPermanentCoinTotal(course);
+-
+-    if (course < 0 || course > COURSE_MAX) {
+-        return total;
+-    }
+-    if (total > sm64_permanent_coin_peak[course]) {
+-        sm64_permanent_coin_peak[course] = (s16) total;
+-    }
+-    return sm64_permanent_coin_peak[course];
+-}
+-
+ void SM64AP_RestorePermanentCoinCount() {
+     if (gMarioState == nullptr
+         || gCurrCourseNum <= COURSE_NONE || gCurrCourseNum > COURSE_MAX) {
+diff --git a/src/sm64ap.h b/src/sm64ap.h
+index 4c2d512..0179fb5 100644
+--- a/src/sm64ap.h
++++ b/src/sm64ap.h
+@@ -641,10 +641,8 @@ AP_EXTERN_C bool SM64AP_CollectPermanentCoin(struct Object *, int);
+ AP_EXTERN_C int SM64AP_CollectPermanentCoinOutputs(struct Object *, int, int, int);
+ AP_EXTERN_C u64 SM64AP_PermanentCoinMask(struct Object *, int, int);
+ AP_EXTERN_C int SM64AP_CollectedPermanentRedCoins(int);
+-// Current Permanent Coin Collection total held for a course, and the highest
+-// total ever observed for it this session (see stage-stats.patch).
++// Current Permanent Coin Collection total held for a course (see stage-stats.patch).
+ AP_EXTERN_C int SM64AP_GetPermanentCoinTotal(int);
+-AP_EXTERN_C int SM64AP_GetPermanentCoinPeak(int);
+ AP_EXTERN_C void SM64AP_RestorePermanentCoinCount();
+ AP_EXTERN_C bool SM64AP_ConsumePermanentCoinReconcileRequest();
+ AP_EXTERN_C u8 SM64AP_ObjectVisualState(struct Object *);
