@@ -1,0 +1,50 @@
+diff --git a/include/object_fields.h b/include/object_fields.h
+index 85f55c7..1a8783f 100644
+--- a/include/object_fields.h
++++ b/include/object_fields.h
+@@ -457,6 +457,7 @@
+ #define /*0x0F4*/ oExclamationBoxUnkF4 OBJECT_FIELD_F32(0x1B) // scale?
+ #define /*0x0F8*/ oExclamationBoxUnkF8 OBJECT_FIELD_F32(0x1C) // scale?
+ #define /*0x0FC*/ oExclamationBoxUnkFC OBJECT_FIELD_S32(0x1D) // angle?
++#define /*0x104*/ oExclamationBoxSpawnedObj OBJECT_FIELD_OBJ(0x1F) // Object spawned by exclamation box for respawn tracking.
+ 
+ /* Eyerok Boss */
+ #define /*0x0F8*/ oEyerokBossNumHands   OBJECT_FIELD_S32(0x1C)
+diff --git a/src/game/behaviors/exclamation_box.inc.c b/src/game/behaviors/exclamation_box.inc.c
+index 9f9b3f7..6cbe246 100644
+--- a/src/game/behaviors/exclamation_box.inc.c
++++ b/src/game/behaviors/exclamation_box.inc.c
+@@ -179,6 +179,9 @@ void exclamation_box_spawn_contents(struct Struct802C0DF0 *a0, u8 a1) {
+             }
+ 
+             sp1C = spawn_object(o, a0->model, a0->behavior);
++            if (a1 <= 3) {
++                o->oExclamationBoxSpawnedObj = sp1C;
++            }
+             if (a0->behavior == bhvThreeCoinsSpawn || a0->behavior == bhvTenCoinsSpawn) {
+                 SM64AP_PreserveInheritedPermanentCoinSource(sp1C);
+             }
+@@ -204,7 +207,7 @@ void exclamation_box_act_4(void) {
+     spawn_mist_particles_variable(0, 0, 46.0f);
+     spawn_triangle_break_particles(20, 139, 0.3f, o->oAnimState);
+     create_sound_spawner(SOUND_GENERAL_BREAK_BOX);
+-    if (o->oBehParams2ndByte < 3) {
++    if (o->oBehParams2ndByte <= 3) {
+         o->oAction = 5;
+         cur_obj_hide();
+     } else
+@@ -212,8 +215,13 @@ void exclamation_box_act_4(void) {
+ }
+ 
+ void exclamation_box_act_5(void) {
+-    if (o->oTimer > 300)
++    struct Object *spawned = o->oExclamationBoxSpawnedObj;
++
++    if (spawned == NULL || spawned->activeFlags == 0) {
++        o->oExclamationBoxSpawnedObj = NULL;
++        o->oTimer = 0;
+         o->oAction = 2;
++    }
+ }
+ 
+ void (*sExclamationBoxActions[])(void) = { exclamation_box_act_0, exclamation_box_act_1,
