@@ -29,6 +29,9 @@ This patch makes collecting coins and star secrets easier when flying with the W
 This patch makes the Snowman Lost His Head star easier by removing the need to meet requirements for it to succeed.\
 Instead, it will always succeed.
 
+## Exit All Courses
+This patch adds a new button to the Course Pause Screen, allowing you to skip the course chain and go straight back out of the painting you entered initially.
+
 ## Free Bowser Cam
 This patch gets rid of the restricted 8 directional camera in Bowser Stages when using Free Camera under the BETTERCAMERA make flag.
 
@@ -49,3 +52,6 @@ This patch skips certain popups to make the flow of the game better for an Archi
 Recommended to use a patch to disable the star spawn cutscene.
 
 Also removes the need to be near various NPC star triggers, instead making them spawn as soon as Mario would be able to talk to them.
+
+## Stage Stats
+This patch adds what stars you've collected and your current coin count per stage to the Level Items screen.
