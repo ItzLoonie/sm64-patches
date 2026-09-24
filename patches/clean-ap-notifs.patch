@@ -1,29 +1,39 @@
 diff --git a/include/text_options_strings.h.in b/include/text_options_strings.h.in
-index 50b0e08..cc7be64 100644
+index 50b0e08..2265cad 100644
 --- a/include/text_options_strings.h.in
 +++ b/include/text_options_strings.h.in
-@@ -58,6 +58,9 @@
+@@ -58,6 +58,14 @@
  #define TEXT_OPT_THREEPT   _("THREE POINT")
  #define TEXT_OPT_APPLY     _("APPLY")
  #define TEXT_OPT_RESETWND  _("RESET WINDOW")
 +#define TEXT_OPT_APNOTIF        _("AP NOTIFICATIONS")
 +#define TEXT_OPT_APNOTIFCOUNT   _("AP NOTIFICATION COUNT")
 +#define TEXT_OPT_APNOTIFDURATION _("AP NOTIFICATION TIME")
++#define TEXT_OPT_APSHOWPROG     _("SHOW PROGRESSION")
++#define TEXT_OPT_APSHOWUSEFUL   _("SHOW USEFUL")
++#define TEXT_OPT_APSHOWFILLER   _("SHOW FILLER")
++#define TEXT_OPT_APSHOWTRAPS    _("SHOW TRAPS")
++#define TEXT_OPT_APSHOWCOINTRAPS _("SHOW COIN TRAPS")
  
  #define TEXT_BIND_A        _("A BUTTON")
  #define TEXT_BIND_B        _("B BUTTON")
-@@ -125,6 +128,9 @@
+@@ -125,6 +133,14 @@
  #define TEXT_OPT_THREEPT   _("Three-point")
  #define TEXT_OPT_APPLY     _("Apply")
  #define TEXT_OPT_RESETWND  _("Reset Window")
 +#define TEXT_OPT_APNOTIF        _("AP Notifications")
 +#define TEXT_OPT_APNOTIFCOUNT   _("AP Notification Count")
 +#define TEXT_OPT_APNOTIFDURATION _("AP Notification Time")
++#define TEXT_OPT_APSHOWPROG     _("Show Progression")
++#define TEXT_OPT_APSHOWUSEFUL   _("Show Useful")
++#define TEXT_OPT_APSHOWFILLER   _("Show Filler")
++#define TEXT_OPT_APSHOWTRAPS    _("Show Traps")
++#define TEXT_OPT_APSHOWCOINTRAPS _("Show Coin Traps")
  
  #define TEXT_BIND_A        _("A Button")
  #define TEXT_BIND_B        _("B Button")
 diff --git a/lib/APCpp/Archipelago.cpp b/lib/APCpp/Archipelago.cpp
-index addb079..c0b7d72 100644
+index addb079..ddfe45a 100644
 --- a/lib/APCpp/Archipelago.cpp
 +++ b/lib/APCpp/Archipelago.cpp
 @@ -475,6 +475,10 @@ bool AP_IsMessagePending() {
@@ -48,25 +58,27 @@ index addb079..c0b7d72 100644
  void AP_Say(std::string text) {
      Json::Value req_t;
      req_t[0]["cmd"] = "Say";
-@@ -923,6 +931,7 @@ bool parse_response(std::string msg, std::string &request) {
+@@ -923,6 +931,8 @@ bool parse_response(std::string msg, std::string &request) {
                  msg->type = AP_MessageType::ItemSend;
                  msg->item = getItemName(recv_player.game, root[i]["item"]["item"].asInt64());
                  msg->recvPlayer = recv_player.alias;
 +                msg->flags = root[i]["item"]["flags"].asInt();
++                msg->location = getLocationName(ap_game, root[i]["item"]["location"].asInt64());
                  msg->text = msg->item + std::string(" was sent to ") + msg->recvPlayer;
                  messageQueue.push_back(msg);
              } else if (printType == "Hint") {
-@@ -987,6 +996,8 @@ bool parse_response(std::string msg, std::string &request) {
+@@ -987,6 +997,9 @@ bool parse_response(std::string msg, std::string &request) {
                      msg->type = AP_MessageType::ItemRecv;
                      msg->item = getItemName(ap_game, item_id);
                      msg->sendPlayer = sender.alias;
 +                    msg->flags = root[i]["items"][j]["flags"].asInt();
 +                    msg->selfFound = (root[i]["items"][j]["player"].asInt() == ap_player_id);
++                    msg->location = getLocationName(sender.game, root[i]["items"][j]["location"].asInt64());
                      msg->text = std::string("Received ") + msg->item + std::string(" from ") + msg->sendPlayer;
                      messageQueue.push_back(msg);
                  }
 diff --git a/lib/APCpp/Archipelago.h b/lib/APCpp/Archipelago.h
-index a9f58c7..568f99b 100644
+index a9f58c7..12dffeb 100644
 --- a/lib/APCpp/Archipelago.h
 +++ b/lib/APCpp/Archipelago.h
 @@ -93,7 +93,12 @@ void AP_DeathLinkSend();
@@ -83,7 +95,7 @@ index a9f58c7..568f99b 100644
  };
  
  struct AP_Message {
-@@ -101,14 +106,23 @@ struct AP_Message {
+@@ -101,14 +106,25 @@ struct AP_Message {
      std::string text;
  };
  
@@ -93,12 +105,14 @@ index a9f58c7..568f99b 100644
  struct AP_ItemSendMessage : AP_Message {
      std::string item;
      std::string recvPlayer;
++    std::string location;
 +    int flags = 0;
  };
  
  struct AP_ItemRecvMessage : AP_Message {
      std::string item;
      std::string sendPlayer;
++    std::string location;
 +    int flags = 0;
 +    // True when this item came from a location the local player themselves
 +    // checked (i.e. sendPlayer is the local player), as opposed to an item
@@ -107,7 +121,7 @@ index a9f58c7..568f99b 100644
  };
  
  struct AP_HintMessage : AP_Message {
-@@ -123,11 +137,26 @@ struct AP_CountdownMessage : AP_Message {
+@@ -123,11 +139,26 @@ struct AP_CountdownMessage : AP_Message {
      int timer;
  };
  
@@ -163,69 +177,94 @@ index 27119e8..9d0798c 100644
              clear_viewport(D_8032CE78, gWarpTransFBSetColor);
          } else {
 diff --git a/src/game/options_menu.c b/src/game/options_menu.c
-index d22d7de..64e8f9d 100644
+index d22d7de..20e8c03 100644
 --- a/src/game/options_menu.c
 +++ b/src/game/options_menu.c
-@@ -93,6 +93,9 @@ static const u8 optsVideoStr[][32] = {
+@@ -93,6 +93,14 @@ static const u8 optsVideoStr[][32] = {
      { TEXT_OPT_HUD },
      { TEXT_OPT_THREEPT },
      { TEXT_OPT_APPLY },
 +    { TEXT_OPT_APNOTIF },
 +    { TEXT_OPT_APNOTIFCOUNT },
 +    { TEXT_OPT_APNOTIFDURATION },
++    { TEXT_OPT_APSHOWPROG },
++    { TEXT_OPT_APSHOWUSEFUL },
++    { TEXT_OPT_APSHOWFILLER },
++    { TEXT_OPT_APSHOWTRAPS },
++    { TEXT_OPT_APSHOWCOINTRAPS },
  };
  
  static const u8 optsAudioStr[][32] = {
-@@ -285,6 +288,9 @@ static struct Option optsVideo[] = {
+@@ -285,6 +293,14 @@ static struct Option optsVideo[] = {
      DEF_OPT_TOGGLE( optsVideoStr[5], &configWindow.vsync ),
      DEF_OPT_CHOICE( optsVideoStr[1], &configFiltering, filterChoices ),
      DEF_OPT_TOGGLE( optsVideoStr[7], &configHUD ),
 +    DEF_OPT_TOGGLE( optsVideoStr[10], &configAPNotifications ),
-+    DEF_OPT_SCROLL( optsVideoStr[11], &configAPNotificationCount, 1, 3, 1 ),
++    DEF_OPT_SCROLL( optsVideoStr[11], &configAPNotificationCount, 1, 5, 1 ),
 +    DEF_OPT_SCROLL( optsVideoStr[12], &configAPNotificationDuration, 1, 10, 1 ),
++    DEF_OPT_TOGGLE( optsVideoStr[13], &configAPShowProgression ),
++    DEF_OPT_TOGGLE( optsVideoStr[14], &configAPShowUseful ),
++    DEF_OPT_TOGGLE( optsVideoStr[15], &configAPShowFiller ),
++    DEF_OPT_TOGGLE( optsVideoStr[16], &configAPShowTraps ),
++    DEF_OPT_TOGGLE( optsVideoStr[17], &configAPShowCoinTraps ),
      DEF_OPT_BUTTON( optsVideoStr[4], optvideo_reset_window ),
      DEF_OPT_BUTTON( optsVideoStr[9], optvideo_apply ),
  };
 diff --git a/src/pc/configfile.c b/src/pc/configfile.c
-index 47c4329..4083d47 100644
+index 47c4329..5fd25bb 100644
 --- a/src/pc/configfile.c
 +++ b/src/pc/configfile.c
-@@ -50,6 +50,9 @@ ConfigWindow configWindow       = {
+@@ -50,6 +50,14 @@ ConfigWindow configWindow       = {
      .settings_changed = false,
  };
  unsigned int configFiltering    = 1;          // 0=force nearest, 1=linear, (TODO) 2=three-point
 +bool configAPNotifications = true;            // AP item notifications (Simple style) on/off
-+unsigned int configAPNotificationCount = 1;   // How many AP notifications can be shown at once (1-3)
++unsigned int configAPNotificationCount = 3;   // How many AP notifications can be shown at once (1-3)
 +unsigned int configAPNotificationDuration = 5; // How many seconds each AP notification stays on screen (1-10)
++bool configAPShowProgression = true;          // Show notifications for Progression-tier items
++bool configAPShowUseful = true;               // Show notifications for Useful-tier items
++bool configAPShowFiller = true;               // Show notifications for Filler-tier items
++bool configAPShowTraps = true;                // Show notifications for Trap-tier items
++bool configAPShowCoinTraps = true;            // Show notifications for the local Uncollect Random Coin Trap
  unsigned int configMasterVolume = MAX_VOLUME; // 0 - MAX_VOLUME
  unsigned int configMusicVolume = MAX_VOLUME;
  unsigned int configSfxVolume = MAX_VOLUME;
-@@ -103,6 +106,9 @@ static const struct ConfigOption options[] = {
+@@ -103,6 +111,14 @@ static const struct ConfigOption options[] = {
      {.name = "window_h",             .type = CONFIG_TYPE_UINT, .uintValue = &configWindow.h},
      {.name = "vsync",                .type = CONFIG_TYPE_BOOL, .boolValue = &configWindow.vsync},
      {.name = "texture_filtering",    .type = CONFIG_TYPE_UINT, .uintValue = &configFiltering},
 +    {.name = "ap_notifications",     .type = CONFIG_TYPE_BOOL, .boolValue = &configAPNotifications},
 +    {.name = "ap_notification_count",.type = CONFIG_TYPE_UINT, .uintValue = &configAPNotificationCount},
 +    {.name = "ap_notification_duration", .type = CONFIG_TYPE_UINT, .uintValue = &configAPNotificationDuration},
++    {.name = "ap_show_progression",  .type = CONFIG_TYPE_BOOL, .boolValue = &configAPShowProgression},
++    {.name = "ap_show_useful",       .type = CONFIG_TYPE_BOOL, .boolValue = &configAPShowUseful},
++    {.name = "ap_show_filler",       .type = CONFIG_TYPE_BOOL, .boolValue = &configAPShowFiller},
++    {.name = "ap_show_traps",        .type = CONFIG_TYPE_BOOL, .boolValue = &configAPShowTraps},
++    {.name = "ap_show_cointraps",    .type = CONFIG_TYPE_BOOL, .boolValue = &configAPShowCoinTraps},
      {.name = "master_volume",        .type = CONFIG_TYPE_UINT, .uintValue = &configMasterVolume},
      {.name = "music_volume",         .type = CONFIG_TYPE_UINT, .uintValue = &configMusicVolume},
      {.name = "sfx_volume",           .type = CONFIG_TYPE_UINT, .uintValue = &configSfxVolume},
 diff --git a/src/pc/configfile.h b/src/pc/configfile.h
-index c1a950c..cb20322 100644
+index c1a950c..bacb418 100644
 --- a/src/pc/configfile.h
 +++ b/src/pc/configfile.h
-@@ -19,6 +19,9 @@ typedef struct {
+@@ -19,6 +19,14 @@ typedef struct {
  
  extern ConfigWindow configWindow;
  extern unsigned int configFiltering;
 +extern bool configAPNotifications;
 +extern unsigned int configAPNotificationCount;
 +extern unsigned int configAPNotificationDuration;
++extern bool configAPShowProgression;
++extern bool configAPShowUseful;
++extern bool configAPShowFiller;
++extern bool configAPShowTraps;
++extern bool configAPShowCoinTraps;
  extern unsigned int configMasterVolume;
  extern unsigned int configMusicVolume;
  extern unsigned int configSfxVolume;
 diff --git a/src/sm64ap.cpp b/src/sm64ap.cpp
-index 25a9a31..dd97339 100644
+index 346cdc1..ad19361 100644
 --- a/src/sm64ap.cpp
 +++ b/src/sm64ap.cpp
 @@ -38,6 +38,11 @@ extern "C" {
@@ -296,7 +335,7 @@ index 25a9a31..dd97339 100644
  std::map<int,int> map_entrances;
  std::map<int,int> map_sub_area_entrances;
  static int sm64_castle_return_shuffle_mode = 0;
-@@ -6970,6 +7017,47 @@ static std::string SM64AP_SerializeUncollectTrapEvent(
+@@ -7076,6 +7123,47 @@ static std::string SM64AP_SerializeUncollectTrapEvent(
      return output.str();
  }
  
@@ -344,7 +383,7 @@ index 25a9a31..dd97339 100644
  static void SM64AP_ApplyUncollectTrapEvent(const SM64APUncollectTrapEvent &event) {
      if (event.source == 0) {
          return;
-@@ -6981,6 +7069,18 @@ static void SM64AP_ApplyUncollectTrapEvent(const SM64APUncollectTrapEvent &event
+@@ -7087,6 +7175,18 @@ static void SM64AP_ApplyUncollectTrapEvent(const SM64APUncollectTrapEvent &event
      sm64_uncollected_coin_tombstones.insert(key);
      sm64_permanent_coin_sources_dirty = true;
      SM64AP_CheckGlobalCoinCount();
@@ -363,7 +402,7 @@ index 25a9a31..dd97339 100644
  }
  
  void SM64AP_UpdatePermanentCoinTrap() {
-@@ -8114,51 +8214,286 @@ bool SM64AP_CanLedgeGrab() {
+@@ -8220,51 +8320,323 @@ bool SM64AP_CanLedgeGrab() {
      return SM64AP_HaveAbilityForCurrentLevel(SM64AP_ID_LEDGEGRAB - SM64AP_ABILITY_OFFSET);
  }
  
@@ -389,6 +428,22 @@ index 25a9a31..dd97339 100644
 +    if (flags & 0x04) return kTrap;
 +    if (flags & 0x02) return kUseful;
 +    return kFiller;
++}
++
++// Color for the parenthesized location name appended to Simple AP
++// notifications, matching the green used for location names elsewhere.
++static constexpr SM64AP_Color kLocationColor = { 0, 255, 127 };
++
++// Whether a Simple AP notification for an item with these flags should be
++// shown, per the user's per-tier Show Progression/Useful/Filler/Traps
++// settings. Tier priority mirrors SM64AP_GetItemTierColor() above, so an
++// item that's simultaneously flagged (e.g. progression + trap) is gated by
++// the same tier it's colored as.
++static bool SM64AP_ShouldShowItemTier(int flags) {
++    if (flags & 0x01) return configAPShowProgression;
++    if (flags & 0x04) return configAPShowTraps;
++    if (flags & 0x02) return configAPShowUseful;
++    return configAPShowFiller;
 +}
 +
 +// A few dialog-font glyph codes (see charmap.txt) that aren't already exposed
@@ -623,16 +678,31 @@ index 25a9a31..dd97339 100644
 +
 +    static constexpr SM64AP_Color kMore = { 180, 180, 180 }; // Dim gray; not a tier color.
 +    static constexpr s32 horizontalMarginPx = 24;
++    // The whole notification stack is drawn through a guScale(kNotifScale)
++    // modelview matrix below, which - since it's applied as a MUL onto the
++    // existing screen-space ortho, not as a separate pre-scale step - shrinks
++    // every vertex coordinate we hand to print_generic_string() toward the
++    // origin, not just the glyphs' size. GFX_DIMENSIONS_FROM_LEFT_EDGE(0) is
++    // 0 only at the base 4:3 virtual resolution; at any other aspect ratio
++    // it's a nonzero offset that would get shrunk by kNotifScale along with
++    // everything else, so the left starting edge would drift inward on wider
++    // screens instead of always tracking the true screen edge (the way the
++    // unscaled move-rando HUD list in render_hud_available_moves() does).
++    // Dividing our target on-screen coordinates by kNotifScale up front
++    // cancels that shrink out, so what finally lands on screen after the
++    // matrix multiply matches the true edge at any window size/aspect ratio.
++    static constexpr float kNotifScale = 0.70f;
 +    const s32 maxWidthPx = static_cast<s32>(
-+        GFX_DIMENSIONS_FROM_RIGHT_EDGE(0) - GFX_DIMENSIONS_FROM_LEFT_EDGE(0)) - horizontalMarginPx;
-+    const s16 x = GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(6);
++        (GFX_DIMENSIONS_FROM_RIGHT_EDGE(0) - GFX_DIMENSIONS_FROM_LEFT_EDGE(0)) - horizontalMarginPx);
++    const s32 wrapWidthPx = static_cast<s32>(maxWidthPx / kNotifScale);
++    const s16 x = static_cast<s16>(GFX_DIMENSIONS_FROM_LEFT_EDGE(0) / kNotifScale);
 +
 +    // Word-wrap every active entry up front so the total row count (and thus
 +    // the y offset of the very first row) is known before anything is drawn.
 +    std::vector<SM64AP_WrappedNotifEntry> wrapped;
 +    wrapped.reserve(sm64_simple_notif_entries.size());
 +    for (const SM64AP_SimpleNotifEntry &entry : sm64_simple_notif_entries) {
-+        wrapped.push_back({ SM64AP_WrapDialogText(entry.text, maxWidthPx), entry.spans });
++        wrapped.push_back({ SM64AP_WrapDialogText(entry.text, wrapWidthPx), entry.spans });
 +    }
 +
 +    // Every slot is occupied and there are still messages behind them --
@@ -657,6 +727,10 @@ index 25a9a31..dd97339 100644
 +
 +    gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
 +
++    Mtx *scaleMatrix = (Mtx *)alloc_display_list(sizeof(Mtx));
++    guScale(scaleMatrix, kNotifScale, kNotifScale, 1.0f);
++    gSPMatrix(gDisplayListHead++, (Mtx *)VIRTUAL_TO_PHYSICAL(scaleMatrix), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
++
 +    size_t rowFromTop = 0;
 +    for (const SM64AP_WrappedNotifEntry &entry : wrapped) {
 +        for (const SM64AP_DialogLine &line : entry.lines) {
@@ -674,11 +748,13 @@ index 25a9a31..dd97339 100644
 +        SM64AP_DrawSimpleNotifLine(x, 0, encoded, kMore);
 +    }
 +
++    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
++
 +    gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
  }
  
  void SM64AP_PrintNext() {
-@@ -8174,18 +8509,83 @@ void SM64AP_PrintNext() {
+@@ -8280,18 +8652,97 @@ void SM64AP_PrintNext() {
          print_text(GFX_DIMENSIONS_FROM_LEFT_EDGE(SCREEN_WIDTH / 2) - 10, SCREEN_HEIGHT / 2, "INCOMPATIBLE WITH");
          print_text(GFX_DIMENSIONS_FROM_LEFT_EDGE(SCREEN_WIDTH / 2) - 10, SCREEN_HEIGHT / 2 - 20, "MOUE RANDO");
      }
@@ -699,11 +775,18 @@ index 25a9a31..dd97339 100644
 +        if (next->type == AP_MessageType::ItemSend) {
 +            // You found someone else's item and sent it to them.
 +            AP_ItemSendMessage* o_msg = static_cast<AP_ItemSendMessage*>(next);
-+            std::string prefix = "You found " + o_msg->recvPlayer + "'s ";
-+            if (configAPNotifications) {
-+                std::string sentence = prefix + o_msg->item;
++            std::string prefix = "Sent ";
++            std::string middle = " to " + o_msg->recvPlayer + " (";
++            std::string suffix = ")";
++            if (configAPNotifications && SM64AP_ShouldShowItemTier(o_msg->flags)) {
++                std::string sentence = prefix + o_msg->item + middle + o_msg->location + suffix;
++                size_t itemStart = prefix.size();
++                size_t itemEnd = itemStart + o_msg->item.size();
++                size_t locStart = itemEnd + middle.size();
++                size_t locEnd = locStart + o_msg->location.size();
 +                std::vector<SM64AP_ColorSpan> spans = {
-+                    { prefix.size(), sentence.size(), SM64AP_GetItemTierColor(o_msg->flags) }
++                    { itemStart, itemEnd, SM64AP_GetItemTierColor(o_msg->flags) },
++                    { locStart, locEnd, kLocationColor }
 +                };
 +                SM64AP_PushSimpleNotification(sentence, spans);
 +            }
@@ -712,13 +795,20 @@ index 25a9a31..dd97339 100644
 +            AP_ItemRecvMessage* o_msg = static_cast<AP_ItemRecvMessage*>(next);
 +            // Either someone else found an item belonging to you, or you found
 +            // one of your own items yourself.
-+            std::string prefix = o_msg->selfFound
-+                ? "You found your "
-+                : (o_msg->sendPlayer + " found your ");
-+            if (configAPNotifications) {
-+                std::string sentence = prefix + o_msg->item;
++            std::string prefix = o_msg->selfFound ? "Found " : "Received ";
++            std::string middle = o_msg->selfFound
++                ? " ("
++                : (" from " + o_msg->sendPlayer + " (");
++            std::string suffix = ")";
++            if (configAPNotifications && SM64AP_ShouldShowItemTier(o_msg->flags)) {
++                std::string sentence = prefix + o_msg->item + middle + o_msg->location + suffix;
++                size_t itemStart = prefix.size();
++                size_t itemEnd = itemStart + o_msg->item.size();
++                size_t locStart = itemEnd + middle.size();
++                size_t locEnd = locStart + o_msg->location.size();
 +                std::vector<SM64AP_ColorSpan> spans = {
-+                    { prefix.size(), sentence.size(), SM64AP_GetItemTierColor(o_msg->flags) }
++                    { itemStart, itemEnd, SM64AP_GetItemTierColor(o_msg->flags) },
++                    { locStart, locEnd, kLocationColor }
 +                };
 +                SM64AP_PushSimpleNotification(sentence, spans);
 +            }
@@ -726,7 +816,7 @@ index 25a9a31..dd97339 100644
 +        } else if (next->type == AP_MessageType::CoinTrap) {
 +            AP_LocalNotifMessage* o_msg = static_cast<AP_LocalNotifMessage*>(next);
 +            std::string prefix = "A coin was uncollected in ";
-+            if (configAPNotifications) {
++            if (configAPNotifications && configAPShowCoinTraps) {
 +                std::string sentence = prefix + o_msg->label;
 +                std::vector<SM64AP_ColorSpan> spans = {
 +                    { prefix.size(), sentence.size(), SM64AP_GetItemTierColor(0x02) }
@@ -772,10 +862,10 @@ index 25a9a31..dd97339 100644
          AP_CountdownMessage* o_msg = static_cast<AP_CountdownMessage*>(msg);
          print_text(GFX_DIMENSIONS_FROM_LEFT_EDGE(0) + SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, std::to_string(o_msg->timer).c_str());
 diff --git a/src/sm64ap.h b/src/sm64ap.h
-index fca699b..a8fea82 100644
+index 5b24c8a..1ee1883 100644
 --- a/src/sm64ap.h
 +++ b/src/sm64ap.h
-@@ -659,6 +659,7 @@ AP_EXTERN_C struct DialogEntry *SM64AP_GetSignDialogEntry(s16, struct DialogEntr
+@@ -662,6 +662,7 @@ AP_EXTERN_C struct DialogEntry *SM64AP_GetSignDialogEntry(s16, struct DialogEntr
  
  // Print Next Message to Screen
  AP_EXTERN_C void SM64AP_PrintNext();
