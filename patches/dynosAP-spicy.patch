@@ -7728,3 +7728,258 @@ index b6aa6db..3c6505d 100644
      uint8_t fmt = rdp.texture_tile.fmt;
      uint8_t siz = rdp.texture_tile.siz;
  
+diff --git a/Makefile b/Makefile
+index 9f88d2d2..1d739bff 100644
+--- a/Makefile
++++ b/Makefile
+@@ -854,10 +854,32 @@ $(BUILD_DIR)/%: %.png
+ 
+ endif
+ 
++# AP: also bake a real (non-string) copy of the sideburn texture's raw pixels
++# regardless of EXTERNAL_DATA, from the same source PNG, so SM64AP can
++# register real pixel data with DynOS's texture cache instead of relying on
++# the EXTERNAL_DATA "pointer is an asset-name string" scheme -- see
++# data/dynos_sm64ap_sideburn.cpp and actors/mario/model.inc.c. This is an
++# explicit (non-%) rule so it always overrides the pattern rules above for
++# this one target, in both configurations.
++$(BUILD_DIR)/actors/mario/mario_sideburn_ap_vanilla.rgba16: actors/mario/mario_sideburn.rgba16.png
++	$(N64GRAPHICS) -i $@ -g $< -f rgba16
++
+ $(BUILD_DIR)/%.inc.c: $(BUILD_DIR)/% %.png
+ 	hexdump -v -e '1/1 "0x%X,"' $< > $@
+ 	echo >> $@
+ 
++# AP: explicit rule for the sideburn's forced-raw copy (see above); it has no
++# %.png of its own, it reuses mario_sideburn.rgba16.png as its source, so it
++# can't go through the generic %.inc.c pattern rule above.
++$(BUILD_DIR)/actors/mario/mario_sideburn_ap_vanilla.rgba16.inc.c: $(BUILD_DIR)/actors/mario/mario_sideburn_ap_vanilla.rgba16
++	hexdump -v -e '1/1 "0x%X,"' $< > $@
++	echo >> $@
++
++# AP: actors/group0.c pulls in actors/mario/model.inc.c, which #includes the
++# file above -- a plain #include is invisible to make's dependency graph, so
++# without this line make has no reason to build it before compiling group0.o.
++$(BUILD_DIR)/actors/group0.o: $(BUILD_DIR)/actors/mario/mario_sideburn_ap_vanilla.rgba16.inc.c
++
+ ifeq ($(EXTERNAL_DATA),0)
+ 
+ # Color Index CI8
+diff --git a/actors/mario/model.inc.c b/actors/mario/model.inc.c
+index 8d46944d..acd8be44 100644
+--- a/actors/mario/model.inc.c
++++ b/actors/mario/model.inc.c
+@@ -94,64 +94,39 @@ ALIGNED8 static const u8 mario_texture_m_logo[] = {
+ };
+ 
+ // 0x04002090
+-ALIGNED8 static u8 mario_texture_hair_sideburn[] = {
+-#include "actors/mario/mario_sideburn.rgba16.inc.c"
++// AP: this symbol is intentionally NOT a normal pixel array. Its real storage
++// (a DynOS DataNode<TexData>) lives in data/dynos_sm64ap_sideburn.cpp, which
++// also registers this exact address with DynOS's own actor-texture list.
++// DynOS's texture importer (src/pc/gfx/gfx_pc.c: import_texture) checks that
++// list BEFORE the EXTERNAL_DATA "pointer is an asset-name string" codepath,
++// so this texture is loaded from real, mutable RGBA32 pixels we control --
++// never from a string lookup -- and can be recolored exactly, not just
++// tinted. It's still declared as a byte array here so every existing
++// gsDPSetTextureImage(..., mario_texture_hair_sideburn) call below keeps
++// compiling unchanged; nothing in this file ever reads/writes through it.
++extern u8 mario_texture_hair_sideburn[1];
++
++ALIGNED8 static const u8 mario_texture_hair_sideburn_ap_vanilla[] = {
++#include "actors/mario/mario_sideburn_ap_vanilla.rgba16.inc.c"
+ };
+ 
+-ALIGNED8 static const u8 mario_texture_hair_sideburn_vanilla[] = {
+-#include "actors/mario/mario_sideburn.rgba16.inc.c"
+-};
+-
+-static u8 sm64ap_rgba16_channel_to_u8(u16 value) {
+-    return (value * 255 + 15) / 31;
+-}
+-
+-static u8 sm64ap_u8_channel_to_rgba16(u8 value) {
+-    return (value * 31 + 127) / 255;
+-}
+-
+-static u8 sm64ap_scale_sideburn_channel(u8 value, u32 luma) {
+-#define SM64AP_VANILLA_HAIR_LUMA ((115 * 299 + 6 * 587) / 1000)
+-    u32 scaled = value * luma;
+-
+-    scaled = (scaled + SM64AP_VANILLA_HAIR_LUMA / 2) / SM64AP_VANILLA_HAIR_LUMA;
+-    return scaled > 255 ? 255 : scaled;
+-#undef SM64AP_VANILLA_HAIR_LUMA
+-}
+-
+ void SM64AP_ResetMarioSideburnColor(void) {
+-    for (u32 i = 0; i < sizeof(mario_texture_hair_sideburn); i++) {
+-        mario_texture_hair_sideburn[i] = mario_texture_hair_sideburn_vanilla[i];
+-    }
++    extern void SM64AP_ResetMarioSideburnColorReal(void);
++    SM64AP_ResetMarioSideburnColorReal();
+ }
+ 
+ void SM64AP_SetMarioSideburnColor(u8 r, u8 g, u8 b) {
++    extern void SM64AP_SetMarioSideburnColorReal(u8 r, u8 g, u8 b);
+     if (r == 115 && g == 6 && b == 0) {
+         SM64AP_ResetMarioSideburnColor();
+         return;
+     }
++    SM64AP_SetMarioSideburnColorReal(r, g, b);
++}
+ 
+-    for (u32 i = 0; i < sizeof(mario_texture_hair_sideburn); i += 2) {
+-        u16 texel = (mario_texture_hair_sideburn_vanilla[i] << 8) | mario_texture_hair_sideburn_vanilla[i + 1];
+-
+-        if (!(texel & 1)) {
+-            mario_texture_hair_sideburn[i] = mario_texture_hair_sideburn_vanilla[i];
+-            mario_texture_hair_sideburn[i + 1] = mario_texture_hair_sideburn_vanilla[i + 1];
+-            continue;
+-        }
+-
+-        u8 sourceR = sm64ap_rgba16_channel_to_u8((texel >> 11) & 0x1F);
+-        u8 sourceG = sm64ap_rgba16_channel_to_u8((texel >> 6) & 0x1F);
+-        u8 sourceB = sm64ap_rgba16_channel_to_u8((texel >> 1) & 0x1F);
+-        u32 luma = (sourceR * 299 + sourceG * 587 + sourceB * 114) / 1000;
+-        u16 recolored = (sm64ap_u8_channel_to_rgba16(sm64ap_scale_sideburn_channel(r, luma)) << 11)
+-                       | (sm64ap_u8_channel_to_rgba16(sm64ap_scale_sideburn_channel(g, luma)) << 6)
+-                       | (sm64ap_u8_channel_to_rgba16(sm64ap_scale_sideburn_channel(b, luma)) << 1)
+-                       | 1;
+-
+-        mario_texture_hair_sideburn[i] = recolored >> 8;
+-        mario_texture_hair_sideburn[i + 1] = recolored & 0xFF;
+-    }
++void SM64AP_InitMarioSideburnTexture(void) {
++    extern void SM64AP_RegisterSideburnDynosTexture(const u8 *vanillaRgba16, u32 byteLength);
++    SM64AP_RegisterSideburnDynosTexture(mario_texture_hair_sideburn_ap_vanilla, sizeof(mario_texture_hair_sideburn_ap_vanilla));
+ }
+ 
+ // 0x04002890
+--- a/data/dynos_main.cpp
++++ b/data/dynos_main.cpp
+@@ -10,6 +10,7 @@
+ #ifdef OMM_DEFINES_H
+ extern void omm_opt_init();
+ #endif
++extern void SM64AP_InitMarioSideburnTexture(void);
+ }
+ 
+ #ifdef DYNOS_COOP
+@@ -97,6 +98,12 @@
+     omm_opt_init();
+ #endif
+     DynOS_Opt_Init();
++
++    // AP: register the sideburn texture with DynOS's real-pixel texture
++    // cache. Must run after DynOS_Opt_Init() (which sizes
++    // DynOS_Gfx_GetActorList() via DynOS_Gfx_Init()), and before Mario's
++    // model is ever drawn -- see data/dynos_sm64ap_sideburn.cpp.
++    SM64AP_InitMarioSideburnTexture();
+ }
+ 
+ //
+diff --git a/data/dynos_sm64ap_sideburn.cpp b/data/dynos_sm64ap_sideburn.cpp
+new file mode 100644
+index 00000000..24803451
+--- /dev/null
++++ b/data/dynos_sm64ap_sideburn.cpp
+@@ -0,0 +1,98 @@
++#include "dynos.cpp.h"
++
++// AP: SM64AP's Archipelago color randomizer wants to recolor Mario's
++// sideburn texture to an arbitrary exact color. Under EXTERNAL_DATA builds,
++// the compiled texture "pixel array" in actors/mario/model.inc.c is actually
++// the NUL-terminated asset path string baked in by tools/zeroterm.py, so
++// editing it byte-by-byte (as if it were real pixels) corrupts the filename
++// and the renderer draws garbage instead of the sideburn.
++//
++// DynOS (see dynos_gfx_texture.cpp: DynOS_Gfx_ImportTexture) already has a
++// texture pipeline that never has this problem: it uploads real, mutable
++// RGBA32 pixel buffers straight from memory for any texture pointer it finds
++// registered in DynOS_Gfx_GetActorList(), and this check happens in
++// src/pc/gfx/gfx_pc.c's import_texture() BEFORE the EXTERNAL_DATA
++// string-lookup branch even runs. So we register the sideburn texture with
++// DynOS ourselves (as if it were a DynOS actor-pack texture) and recolor its
++// real pixels directly -- this works identically regardless of
++// EXTERNAL_DATA, and gives an exact color match instead of an approximate
++// light tint.
++
++extern "C" DataNode<TexData> mario_texture_hair_sideburn;
++DataNode<TexData> mario_texture_hair_sideburn;
++
++static Array<u8> sSideburnVanillaRgba32;
++static bool sSideburnRegistered = false;
++
++extern "C" void SM64AP_RegisterSideburnDynosTexture(const u8 *aVanillaRgba16, u32 aByteLength) {
++    if (sSideburnRegistered) {
++        return;
++    }
++    sSideburnRegistered = true;
++
++    u8 *_Rgba32 = DynOS_Gfx_TextureConvertToRGBA32(aVanillaRgba16, aByteLength, G_IM_FMT_RGBA, G_IM_SIZ_16b, NULL);
++    u32 _Rgba32Length = aByteLength * 2;
++    sSideburnVanillaRgba32 = Array<u8>(_Rgba32, _Rgba32 + _Rgba32Length);
++    free(_Rgba32);
++
++    TexData *_Tex = New<TexData>();
++    _Tex->mRawWidth  = 32;
++    _Tex->mRawHeight = 32;
++    _Tex->mRawFormat = G_IM_FMT_RGBA;
++    _Tex->mRawSize   = G_IM_SIZ_16b;
++    _Tex->mRawData   = sSideburnVanillaRgba32;
++    _Tex->mUploaded  = false;
++
++    mario_texture_hair_sideburn.mData = _Tex;
++    mario_texture_hair_sideburn.mSize = aByteLength;
++
++    ActorGfx _ActorGfx;
++    _ActorGfx.mGfxData = New<GfxData>();
++    _ActorGfx.mGfxData->mTextures.Add(&mario_texture_hair_sideburn);
++    _ActorGfx.mGraphNode = NULL;
++    _ActorGfx.mPackIndex = -1;
++    DynOS_Gfx_GetActorList().Add(_ActorGfx);
++}
++
++extern "C" void SM64AP_SetMarioSideburnColorReal(u8 r, u8 g, u8 b) {
++#define SM64AP_VANILLA_HAIR_LUMA ((115u * 299u + 6u * 587u) / 1000u)
++    if (!mario_texture_hair_sideburn.mData) {
++        return; // not registered yet; shouldn't happen once DynOS_Init() has run
++    }
++
++    TexData *_Tex = mario_texture_hair_sideburn.mData;
++    const u8 *_Vanilla = sSideburnVanillaRgba32.begin();
++    u8 *_Live = _Tex->mRawData.begin();
++    u32 _PixelCount = (u32)(_Tex->mRawWidth * _Tex->mRawHeight);
++
++    for (u32 i = 0; i < _PixelCount; i++) {
++        const u8 *vpx = &_Vanilla[i * 4];
++        u8 *lpx = &_Live[i * 4];
++
++        if (vpx[3] == 0) {
++            lpx[0] = vpx[0]; lpx[1] = vpx[1]; lpx[2] = vpx[2]; lpx[3] = vpx[3];
++            continue;
++        }
++
++        u32 luma = ((u32) vpx[0] * 299u + (u32) vpx[1] * 587u + (u32) vpx[2] * 114u) / 1000u;
++        u32 scaledR = ((u32) r * luma + SM64AP_VANILLA_HAIR_LUMA / 2u) / SM64AP_VANILLA_HAIR_LUMA;
++        u32 scaledG = ((u32) g * luma + SM64AP_VANILLA_HAIR_LUMA / 2u) / SM64AP_VANILLA_HAIR_LUMA;
++        u32 scaledB = ((u32) b * luma + SM64AP_VANILLA_HAIR_LUMA / 2u) / SM64AP_VANILLA_HAIR_LUMA;
++
++        lpx[0] = (u8) (scaledR > 255u ? 255u : scaledR);
++        lpx[1] = (u8) (scaledG > 255u ? 255u : scaledG);
++        lpx[2] = (u8) (scaledB > 255u ? 255u : scaledB);
++        lpx[3] = vpx[3];
++    }
++
++    _Tex->mUploaded = false;
++#undef SM64AP_VANILLA_HAIR_LUMA
++}
++
++extern "C" void SM64AP_ResetMarioSideburnColorReal(void) {
++    if (!mario_texture_hair_sideburn.mData) {
++        return;
++    }
++    mario_texture_hair_sideburn.mData->mRawData = sSideburnVanillaRgba32;
++    mario_texture_hair_sideburn.mData->mUploaded = false;
++}
