@@ -38,6 +38,10 @@ This patch gets rid of the restricted 8 directional camera in Bowser Stages when
 ## Item HUD
 This patch adds a key counter, a move overlay and a global coin counter to the HUD.
 
+> [!WARNING]
+> If you're using item-hud-jp.patch, you are required to use a JP ROM.\
+> Consider using the jp-on-us patch from the Archipelago Discord server.
+
 ## Let Me Cheat
 This patch disables the cheat detection for Koopa the Quick and the Big Penguin, allowing you to use cannons and take the secret tunnel.
 
