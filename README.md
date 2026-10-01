@@ -14,6 +14,9 @@ This patch will automatically collect coins that are produced from objects like 
 This patch tweaks the Level Items screen to be easier to understand what you have and don't have at a glance.\
 This is accomplished by making missing items gray instead of the Y/N system.
 
+## Cap Cancel Shortcut
+This patch allows you to end the cap timer prematurely by holding down the L button for 5 seconds.
+
 ## Clean AP Notifications
 This patch overhauls the appearance of Archipelago item notifications, making them more readable and support to show more than one at a time.\
 You will also be told what course was affected by an Uncollect Random Coin Trap.\
