@@ -452,7 +452,7 @@
      static const s16 statusX = 112;
 @@ -3288,6 +3703,9 @@
  static void render_pause_level_unlocks(s16 x, s16 y);
- static void render_pause_upgrades(s16 x, s16 y);
+ static void render_pause_global(s16 x, s16 y);
  
 +static void render_pause_entrances_page_one(s16 x, s16 y);
 +static void render_pause_entrances_page_two(s16 x, s16 y);
@@ -463,7 +463,7 @@
 @@ -3323,6 +3741,8 @@
          -8, 140 + contentYOffset,
          view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 1 ? sPauseViewLevels
-         : view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 2 ? sPauseViewUpgrades
+         : view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 2 ? sPauseViewGlobal
 +        : view->type == PAUSE_UNLOCK_VIEW_ENTRANCES && sPauseUnlockPage == 0 ? sPauseEntrancesPageOneTitle
 +        : view->type == PAUSE_UNLOCK_VIEW_ENTRANCES && sPauseUnlockPage == 1 ? sPauseEntrancesPageTwoTitle
          : pause_unlock_view_title(view));
@@ -496,7 +496,7 @@
          gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, gDialogTextAlpha);
          render_pause_level_unlocks(74, 122 + contentYOffset);
 @@ -3466,6 +3895,233 @@
-     }
+     print_generic_string(x + valueX - (length - 1) * 8, y - 3 * 14, value);
  }
  
 +// Draws the ">" separator between a source and destination label. Reuses
@@ -818,13 +818,6 @@
                  level_set_transition(0, 0);
                  play_sound(SOUND_MENU_PAUSE_2, gDefaultSoundArgs);
                  gMenuMode = -1;
-@@ -4120,4 +4826,4 @@
-     }
-     gDPNoOpTag(gDisplayListHead++, SM64AP_VISUAL_TAG_BASE | SM64AP_VISUAL_NORMAL);
-     return mode;
--}
-+}
-\ No newline at end of file
 --- a/src/game/ingame_menu.h
 +++ b/src/game/ingame_menu.h
 @@ -95,6 +95,7 @@

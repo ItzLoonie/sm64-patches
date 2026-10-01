@@ -42,22 +42,21 @@ diff --git a/src/game/ingame_menu.c b/src/game/ingame_menu.c
      return 1;
  }
  
-@@ -3018,14 +3030,15 @@
- static void render_pause_coin_star_requirement(s16 x, s16 y, s16 valueX, s16 courseNum) {
-     u8 strCoinRequirement[4];
-     s16 digitCount = 0;
-+    s16 coinStarRequirement = SM64AP_GetCoinStarRequirement(courseNum + COURSE_MIN);
+@@ -3195,12 +3207,12 @@
+ static void render_pause_coin_count(s16 x, s16 y, s16 valueX, s16 courseNum) {
+     u8 value[18];
+     s16 gameCourseNum = courseNum + COURSE_MIN;
+-    s16 length = pause_coin_fraction_to_str(
+-        SM64AP_GetCourseCoinCount(gameCourseNum),
+-        SM64AP_GetCourseCoinDisplayMaximum(gameCourseNum), value);
++    s16 coinMaximum = SM64AP_GetCourseCoinDisplayMaximum(gameCourseNum);
++    s16 length = pause_coin_fraction_to_str(
++        SM64AP_GetCourseCoinCount(gameCourseNum), coinMaximum, value);
  
--    int_to_str(SM64AP_GetCoinStarRequirement(courseNum + COURSE_MIN), strCoinRequirement);
-+    int_to_str(coinStarRequirement, strCoinRequirement);
-     while (strCoinRequirement[digitCount] != DIALOG_CHAR_TERMINATOR) {
-         digitCount++;
-     }
- 
--    print_generic_string(x, y, sUnlockCoinStar);
--    print_generic_string(valueX - (digitCount - 1) * 8, y, strCoinRequirement);
-+    render_pause_unlock_text(x, y, sUnlockCoinStar, coinStarRequirement != 0);
-+    render_pause_unlock_text(valueX - (digitCount - 1) * 8, y, strCoinRequirement, coinStarRequirement != 0);
+-    print_generic_string(x, y, sUnlockCoins);
+-    print_generic_string(valueX - (length - 1) * 8, y, value);
++    render_pause_unlock_text(x, y, sUnlockCoins, coinMaximum != 0);
++    render_pause_unlock_text(valueX - (length - 1) * 8, y, value, coinMaximum != 0);
  }
  
  static s16 pause_unlock_view_count(void) {

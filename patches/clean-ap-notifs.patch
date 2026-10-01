@@ -287,9 +287,10 @@ index 346cdc1..ad19361 100644
  #include <cctype>
  #include <utility>
  #include <algorithm>
-@@ -504,6 +510,47 @@ int msg_frame_duration = 90;
+@@ -504,7 +510,48 @@ int msg_frame_duration = 90;
  int cur_msg_frame_duration = msg_frame_duration;
  std::queue<int64_t> delayed_queue;
+ static std::mutex delayed_queue_mutex;
  
 +// Plain 8-bit RGB used by the Simple AP notification style (item tier colors,
 +// text fill colors, etc.) -- kept separate from any N64-side color/vertex

@@ -1,0 +1,32 @@
+diff --git a/src/game/mario.c b/src/game/mario.c
+--- a/src/game/mario.c
++++ b/src/game/mario.c
+@@ -1612,16 +1612,28 @@ void sink_mario_in_quicksand(struct MarioState *m) {
+  */
+ u64 sCapFlickerFrames = 0x4444449249255555;
+ 
++#define CAP_CANCEL_HOLD_FRAMES 150
++
+ /**
+  * Updates the cap flags mainly based on the cap timer.
+  */
+ u32 update_and_return_cap_flags(struct MarioState *m) {
++    static s16 sCapCancelHeldFrames = 0;
+     u32 flags = m->flags;
+     u32 action;
+ 
+     if (m->capTimer > 0) {
+         action = m->action;
+ 
++        if (m->controller != NULL && (m->controller->buttonDown & L_TRIG)) {
++            if (++sCapCancelHeldFrames >= CAP_CANCEL_HOLD_FRAMES) {
++                m->capTimer = 1;
++                sCapCancelHeldFrames = 0;
++            }
++        } else {
++            sCapCancelHeldFrames = 0;
++        }
++
+         if ((m->capTimer <= 60)
+             || ((action != ACT_READING_AUTOMATIC_DIALOG) && (action != ACT_READING_NPC_DIALOG)
+                 && (action != ACT_READING_SIGN) && (action != ACT_IN_CANNON))) {
