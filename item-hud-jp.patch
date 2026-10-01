@@ -22,7 +22,7 @@ diff --git a/src/game/hud.c b/src/game/hud.c
 +        }
 +    }
 +
-+    print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_TOP_RIGHT_COUNTER_X), HUD_TOP_Y, "K"); // 'K' glyph substituting for the (nonexistent) key icon
++    print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_TOP_RIGHT_COUNTER_X), HUD_TOP_Y, "/"); // 'K' glyph substituting for the (nonexistent) key icon
 +    print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_TOP_RIGHT_COUNTER_X) + 16, HUD_TOP_Y, "*"); // 'X' glyph
 +    print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_TOP_RIGHT_COUNTER_X - 16) + 14,
 +                       HUD_TOP_Y, "%d", keyCount);
