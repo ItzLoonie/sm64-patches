@@ -59,6 +59,3 @@ This patch skips certain popups to make the flow of the game better for an Archi
 Recommended to use a patch to disable the star spawn cutscene.
 
 Also removes the need to be near various NPC star triggers, instead making them spawn as soon as Mario would be able to talk to them.
-
-## Stage Stats
-This patch adds what stars you've collected and your current coin count per stage to the Level Items screen.
