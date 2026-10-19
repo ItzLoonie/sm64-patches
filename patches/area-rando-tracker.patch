@@ -1,6 +1,8 @@
+diff --git a/src/game/ingame_menu.c b/src/game/ingame_menu.c
+index 829c489..0b12414 100644
 --- a/src/game/ingame_menu.c
 +++ b/src/game/ingame_menu.c
-@@ -2544,6 +2544,12 @@
+@@ -2544,6 +2544,12 @@ enum PauseUnlockViewType {
      PAUSE_UNLOCK_VIEW_COURSE,
      PAUSE_UNLOCK_VIEW_CASTLE,
      PAUSE_UNLOCK_VIEW_SECRET,
@@ -13,7 +15,7 @@
  };
  
  struct PauseUnlockView {
-@@ -2607,6 +2613,63 @@
+@@ -2607,6 +2613,63 @@ static const u8 sPauseViewTotwc[] = { TEXT_PAUSE_VIEW_TOTWC };
  static const u8 sPauseViewWmotr[] = { TEXT_PAUSE_VIEW_WMOTR };
  static const u8 sPauseViewPss[] = { TEXT_PAUSE_VIEW_PSS };
  static const u8 sPauseViewSa[] = { TEXT_PAUSE_VIEW_SA };
@@ -77,7 +79,7 @@
  
  static const u8 sMoveDouble[] = { TEXT_DOUBLE_JUMP };
  static const u8 sMoveTriple[] = { TEXT_TRIPLE_JUMP };
-@@ -2754,6 +2817,347 @@
+@@ -2757,6 +2820,347 @@ static const u8 sPaintingWmotr[] = {
      ASCII_TO_DIALOG('R'), DIALOG_CHAR_SPACE, DIALOG_CHAR_TERMINATOR
  };
  
@@ -425,7 +427,7 @@
  static const struct PauseUnlockView sPauseUnlockViews[] = {
      { PAUSE_UNLOCK_VIEW_CASTLE, COURSE_NONE, LEVEL_CASTLE, SM64AP_LEVEL_MOVE_AREA_CASTLE, SM64AP_LEVEL_MOVE_AREA_CASTLE, sPauseViewCastle },
      { PAUSE_UNLOCK_VIEW_COURSE, COURSE_BOB - 1, LEVEL_BOB, SM64AP_LEVEL_MOVE_AREA_BOB, SM64AP_LEVEL_MOVE_AREA_BOB, NULL },
-@@ -2780,6 +3184,7 @@
+@@ -2783,6 +3187,7 @@ static const struct PauseUnlockView sPauseUnlockViews[] = {
      { PAUSE_UNLOCK_VIEW_SECRET, COURSE_COTMC - 1, LEVEL_COTMC, SM64AP_LEVEL_MOVE_AREA_COTMC, PAUSE_COURSE_UNLOCK_AREA_COTMC, sPauseViewCotmc },
      { PAUSE_UNLOCK_VIEW_SECRET, COURSE_TOTWC - 1, LEVEL_TOTWC, SM64AP_LEVEL_MOVE_AREA_TOTWC, PAUSE_COURSE_UNLOCK_AREA_TOTWC, sPauseViewTotwc },
      { PAUSE_UNLOCK_VIEW_SECRET, COURSE_WMOTR - 1, LEVEL_WMOTR, SM64AP_LEVEL_MOVE_AREA_WMOTR, PAUSE_COURSE_UNLOCK_AREA_WMOTR, sPauseViewWmotr },
@@ -433,7 +435,7 @@
  };
  
  static const struct PauseMoveUnlock sPauseMoveUnlocks[] = {
-@@ -3178,6 +3583,16 @@
+@@ -3217,6 +3622,16 @@ static const struct PauseUnlockView *pause_unlock_view_at(s16 viewIndex) {
      return &sPauseUnlockViews[viewIndex];
  }
  
@@ -450,7 +452,7 @@
  static void render_pause_move_unlocks(s16 x, s16 y, s16 moveArea, s16 levelNum) {
      static const u8 textNotApplicable[] = { TEXT_PAINTING_NA };
      static const s16 statusX = 112;
-@@ -3288,6 +3703,9 @@
+@@ -3327,6 +3742,9 @@ static void render_pause_castle_unlocks(s16 x, s16 y);
  static void render_pause_level_unlocks(s16 x, s16 y);
  static void render_pause_global(s16 x, s16 y);
  
@@ -460,7 +462,7 @@
  static void render_pause_unlock_view_page(s16 viewIndex) {
      const struct PauseUnlockView *view = pause_unlock_view_at(viewIndex);
      static const u8 textPageOne[] = { TEXT_PAGE_1 };
-@@ -3323,6 +3741,8 @@
+@@ -3362,6 +3780,8 @@ static void render_pause_unlock_view_page(s16 viewIndex) {
          -8, 140 + contentYOffset,
          view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 1 ? sPauseViewLevels
          : view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 2 ? sPauseViewGlobal
@@ -469,7 +471,7 @@
          : pause_unlock_view_title(view));
      print_generic_string(
          266, 140 + contentYOffset,
-@@ -3330,14 +3750,23 @@
+@@ -3369,14 +3789,23 @@ static void render_pause_unlock_view_page(s16 viewIndex) {
          : view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 1 ? textCastlePageTwo
          : view->type == PAUSE_UNLOCK_VIEW_CASTLE && sPauseUnlockPage == 2 ? textPageThree
          : sPauseUnlockPage == 0 ? textPageOne : textPageTwo);
@@ -495,7 +497,7 @@
          gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
          gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, gDialogTextAlpha);
          render_pause_level_unlocks(74, 122 + contentYOffset);
-@@ -3466,6 +3895,233 @@
+@@ -3492,6 +3921,236 @@ static void render_pause_global(s16 x, s16 y) {
      print_generic_string(x + valueX - (length - 1) * 8, y - 3 * 14, value);
  }
  
@@ -685,8 +687,10 @@
 +        s16 row = i % PAUSE_ENTRANCE_ROWS_PER_COLUMN;
 +
 +        // Discovered: has the player actually gone through this entrance?
++        // Hinted: read about it on a sign. Either one reveals the row.
 +        // Locked: gated by a key even if the unlock item itself is held.
-+        bool discovered = SM64AP_IsEntranceDiscovered(entrance->sourceEntranceId);
++        bool discovered = SM64AP_IsEntranceDiscovered(entrance->sourceEntranceId)
++            || SM64AP_IsEntranceHinted(entrance->sourceEntranceId);
 +        bool locked = pause_entrance_locked(entrance->sourceEntranceId);
 +        int subAreaKey = SM64AP_GetEntranceDestinationSubAreaKey(entrance->sourceEntranceId);
 +        const u8 *destLabel = !discovered
@@ -712,7 +716,8 @@
 +        const struct PauseSubAreaEntranceRow *entrance = &sPauseSubAreaEntranceRows[i];
 +        s16 column = i / PAUSE_SUB_AREA_ROWS_PER_COLUMN;
 +        s16 row = i % PAUSE_SUB_AREA_ROWS_PER_COLUMN;
-+        bool discovered = SM64AP_IsSubAreaEntranceDiscovered(entrance->sourceId);
++        bool discovered = SM64AP_IsSubAreaEntranceDiscovered(entrance->sourceId)
++            || SM64AP_IsSubAreaEntranceHinted(entrance->sourceId);
 +        bool locked = !discovered;
 +        const u8 *destLabel = discovered
 +            ? pause_subarea_dest_label(SM64AP_GetSubAreaEntranceDestinationKey(entrance->sourceId))
@@ -729,7 +734,7 @@
  static void handle_pause_unlock_page_scrolling(s8 pageCount) {
      s8 requestedPage = sPauseUnlockPage;
  
-@@ -3569,11 +4225,11 @@
+@@ -3595,11 +4254,11 @@ static bool pause_menu_confirm_pressed(void) {
  }
  
  static bool pause_course_unlock_view_close_pressed(void) {
@@ -746,7 +751,7 @@
  }
  
  static bool pause_menu_start_pressed(void) {
-@@ -3639,9 +4295,43 @@
+@@ -3665,9 +4324,43 @@ s16 render_pause_courses_and_castle(void) {
                      sPauseCourseUnlockViewOpen = false;
                      return 1;
                  } else if (pause_course_unlock_view_close_pressed()) {
@@ -793,7 +798,7 @@
                  }
                  break;
              }
-@@ -3682,7 +4372,23 @@
+@@ -3708,7 +4401,23 @@ s16 render_pause_courses_and_castle(void) {
              render_pause_level_items_box(160, 143);
              render_pause_castle_main_strings(104, 60);
  
@@ -818,9 +823,11 @@
                  level_set_transition(0, 0);
                  play_sound(SOUND_MENU_PAUSE_2, gDefaultSoundArgs);
                  gMenuMode = -1;
+diff --git a/src/game/ingame_menu.h b/src/game/ingame_menu.h
+index fb8570f..87ee563 100644
 --- a/src/game/ingame_menu.h
 +++ b/src/game/ingame_menu.h
-@@ -95,6 +95,7 @@
+@@ -95,6 +95,7 @@ enum DialogSpecialChars {
      DIALOG_CHAR_PERIOD = 0x6E,
      DIALOG_CHAR_COMMA = 0x6F,
      DIALOG_CHAR_SPACE = 0x9E,
@@ -828,9 +835,11 @@
      DIALOG_CHAR_STAR_COUNT = 0xE0, // number of stars
      DIALOG_CHAR_UMLAUT = 0xE9,
      DIALOG_CHAR_DAKUTEN = 0xF0,
+diff --git a/src/sm64ap.cpp b/src/sm64ap.cpp
+index ee6de5a..37da286 100644
 --- a/src/sm64ap.cpp
 +++ b/src/sm64ap.cpp
-@@ -273,6 +273,14 @@
+@@ -291,6 +291,22 @@ static bool sm64_cannon_flags_storage_received = false;
  static int sm64_coin_scores_storage_received = 0;
  static u32 sm64_server_save_flags = 0;
  static u32 sm64_server_cannon_flags = 0;
@@ -842,10 +851,18 @@
 +static std::string sm64_discovered_entrances_key;
 +static std::string sm64_discovered_subarea_entrances_low_key;
 +static std::string sm64_discovered_subarea_entrances_high_key;
++static u32 sm64_hinted_entrances_mask = 0;
++static u32 sm64_hinted_subarea_entrances_low = 0;
++static u32 sm64_hinted_subarea_entrances_high = 0;
++static bool sm64_hinted_entrances_storage_received = false;
++static bool sm64_hinted_subarea_entrances_storage_received = false;
++static std::string sm64_hinted_entrances_key;
++static std::string sm64_hinted_subarea_entrances_low_key;
++static std::string sm64_hinted_subarea_entrances_high_key;
  static int sm64_server_coin_high_scores[COURSE_STAGES_COUNT] = {};
  static int sm64_title_connection_wait_frames = 0;
- static void SM64AP_LoadPermanentCoins(const std::string &rawLedger);
-@@ -2801,6 +2809,59 @@
+ static bool SM64AP_ParsePermanentCoins(
+@@ -2853,6 +2869,82 @@ static void SM64AP_HintRandomizedSource(int sourceId) {
      }
  }
  
@@ -869,6 +886,29 @@
 +    const bool high = sourceId >= 32;
 +    const int bit = high ? sourceId - 32 : sourceId - 1;
 +    return ((high ? sm64_discovered_subarea_entrances_high : sm64_discovered_subarea_entrances_low)
++        & (1 << bit)) != 0;
++}
++
++bool SM64AP_IsEntranceHinted(int sourceEntrance) {
++    for (int bit = 0; bit < static_cast<int>(ARRAY_COUNT(sm64_shuffled_entrance_ids)); bit++) {
++        if (sm64_shuffled_entrance_ids[bit] == sourceEntrance) {
++            return (sm64_hinted_entrances_mask & (1 << bit)) != 0;
++        }
++    }
++
++    // Entrances that aren't part of the shuffled pool (e.g. fixed vanilla
++    // connections) are always considered "discovered" for display purposes.
++    return true;
++}
++
++bool SM64AP_IsSubAreaEntranceHinted(int sourceId) {
++    if (sourceId <= 0 || sourceId >= 64) {
++        return true;
++    }
++
++    const bool high = sourceId >= 32;
++    const int bit = high ? sourceId - 32 : sourceId - 1;
++    return ((high ? sm64_hinted_subarea_entrances_high : sm64_hinted_subarea_entrances_low)
 +        & (1 << bit)) != 0;
 +}
 +
@@ -905,7 +945,7 @@
  static void SM64AP_SetTTCEntranceVariantSpeed(int variant) {
      switch (variant) {
          case SM64AP_ENTRANCE_TTC_STOPPED:
-@@ -4640,6 +4701,14 @@
+@@ -4829,6 +4921,24 @@ void SM64AP_SetReplyHandler(AP_SetReply reply) {
      } else if (reply.key == AP_GetPrivateServerDataPrefix() + "CannonFlags") {
          sm64_server_cannon_flags = *(int *) reply.value;
          sm64_cannon_flags_storage_received = true;
@@ -917,10 +957,20 @@
 +        sm64_discovered_subarea_entrances_storage_received = true;
 +    } else if (reply.key == sm64_discovered_subarea_entrances_high_key) {
 +        sm64_discovered_subarea_entrances_high = *(int *) reply.value;
-     } else if (reply.key == sm64_permanent_coin_ledger_key) {
-         SM64AP_LoadPermanentCoins(*(std::string *) reply.value);
-         sm64_permanent_coin_storage_received = true;
-@@ -4756,6 +4825,11 @@
++        sm64_discovered_subarea_entrances_storage_received = true;
++    } else if (reply.key == sm64_hinted_entrances_key) {
++        sm64_hinted_entrances_mask = *(int *) reply.value;
++        sm64_hinted_entrances_storage_received = true;
++    } else if (reply.key == sm64_hinted_subarea_entrances_low_key) {
++        sm64_hinted_subarea_entrances_low = *(int *) reply.value;
++        sm64_hinted_subarea_entrances_storage_received = true;
++    } else if (reply.key == sm64_hinted_subarea_entrances_high_key) {
++        sm64_hinted_subarea_entrances_high = *(int *) reply.value;
++        sm64_hinted_subarea_entrances_storage_received = true;
+     } else if (reply.key == sm64_permanent_coin_migration_key) {
+         sm64_permanent_coin_migration_version = *(int *) reply.value;
+         sm64_permanent_coin_migration_received = true;
+@@ -4993,6 +5103,16 @@ void SM64AP_GenericInit() {
      sm64_pending_coin_completion_checks.clear();
      sm64_finished_bowser_flags = 0;
      sm64_finished_bowser_storage_received = false;
@@ -929,10 +979,15 @@
 +    sm64_discovered_subarea_entrances_high = 0;
 +    sm64_discovered_entrances_storage_received = false;
 +    sm64_discovered_subarea_entrances_storage_received = false;
++    sm64_hinted_entrances_mask = 0;
++    sm64_hinted_subarea_entrances_low = 0;
++    sm64_hinted_subarea_entrances_high = 0;
++    sm64_hinted_entrances_storage_received = false;
++    sm64_hinted_subarea_entrances_storage_received = false;
      sm64_moat_storage_received = false;
-     sm64_permanent_coin_storage_received = false;
      sm64_save_flags_storage_received = false;
-@@ -6747,6 +6821,15 @@
+     sm64_cannon_flags_storage_received = false;
+@@ -7106,6 +7226,23 @@ static void SM64AP_InitializeServerStorage() {
          std::string key = prefix + "CoinHighScore;" + std::to_string(course);
          integerStorageKeys[key] = AP_DataType::Int;
      }
@@ -944,18 +999,30 @@
 +    integerStorageKeys[sm64_discovered_entrances_key] = AP_DataType::Int;
 +    integerStorageKeys[sm64_discovered_subarea_entrances_low_key] = AP_DataType::Int;
 +    integerStorageKeys[sm64_discovered_subarea_entrances_high_key] = AP_DataType::Int;
++    sm64_hinted_entrances_key = "SM64SpicyHintedEntrances_" + std::to_string(AP_GetPlayerID());
++    sm64_hinted_subarea_entrances_low_key =
++        "SM64SpicyHintedSubAreaEntrancesLow_" + std::to_string(AP_GetPlayerID());
++    sm64_hinted_subarea_entrances_high_key =
++        "SM64SpicyHintedSubAreaEntrancesHigh_" + std::to_string(AP_GetPlayerID());
++    integerStorageKeys[sm64_hinted_entrances_key] = AP_DataType::Int;
++    integerStorageKeys[sm64_hinted_subarea_entrances_low_key] = AP_DataType::Int;
++    integerStorageKeys[sm64_hinted_subarea_entrances_high_key] = AP_DataType::Int;
 +
      AP_SetNotify(integerStorageKeys, false);
      for (const auto &entry : integerStorageKeys) {
          SM64AP_SetServerInt(entry.first, "default", 0);
+diff --git a/src/sm64ap.h b/src/sm64ap.h
+index 34e8fb2..7ce5b74 100644
 --- a/src/sm64ap.h
 +++ b/src/sm64ap.h
-@@ -543,6 +543,12 @@
+@@ -548,6 +548,14 @@ AP_EXTERN_C bool SM64AP_HaveProgressiveMips(int);
  AP_EXTERN_C int SM64AP_MipsSpawnTier(void);
  AP_EXTERN_C bool SM64AP_HaveWingCapLight();
  AP_EXTERN_C bool SM64AP_HaveBBH();
 +AP_EXTERN_C bool SM64AP_IsEntranceDiscovered(int sourceEntrance);
 +AP_EXTERN_C bool SM64AP_IsSubAreaEntranceDiscovered(int sourceId);
++AP_EXTERN_C bool SM64AP_IsEntranceHinted(int sourceEntrance);
++AP_EXTERN_C bool SM64AP_IsSubAreaEntranceHinted(int sourceId);
 +AP_EXTERN_C int SM64AP_GetEntranceDestinationEntrance(int sourceEntrance);
 +AP_EXTERN_C int SM64AP_GetEntranceDestinationSubAreaKey(int sourceEntrance);
 +AP_EXTERN_C int SM64AP_GetSubAreaEntranceDestinationEntrance(int sourceId);
