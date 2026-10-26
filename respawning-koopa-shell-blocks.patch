@@ -1,0 +1,59 @@
+diff --git a/include/object_fields.h b/include/object_fields.h
+index 9f2661c..93bf833 100644
+--- a/include/object_fields.h
++++ b/include/object_fields.h
+@@ -456,6 +456,7 @@
+ #define /*0x0F4*/ oExclamationBoxUnkF4 OBJECT_FIELD_F32(0x1B) // scale?
+ #define /*0x0F8*/ oExclamationBoxUnkF8 OBJECT_FIELD_F32(0x1C) // scale?
+ #define /*0x0FC*/ oExclamationBoxUnkFC OBJECT_FIELD_S32(0x1D) // angle?
++#define /*0x104*/ oExclamationBoxSpawnedObj OBJECT_FIELD_OBJ(0x1F) // Object spawned by exclamation box for respawn tracking.
+ 
+ /* Eyerok Boss */
+ #define /*0x0F8*/ oEyerokBossNumHands   OBJECT_FIELD_S32(0x1C)
+diff --git a/src/game/behaviors/exclamation_box.inc.c b/src/game/behaviors/exclamation_box.inc.c
+index 122e0c0..821657e 100644
+--- a/src/game/behaviors/exclamation_box.inc.c
++++ b/src/game/behaviors/exclamation_box.inc.c
+@@ -117,10 +117,18 @@ void exclamation_box_spawn_contents(struct Struct802C0DF0 *a0, u8 a1) {
+     while (a0->unk0 != 99) {
+         if (a1 == a0->unk0) {
+             sp1C = spawn_object(o, a0->model, a0->behavior);
++
++            // Remember spawned object for respawn checks (0 = Wing Cap, 1 = Metal Cap, 2 = Vanish Cap, 3 = Koopa Shell)
++            if (a1 == 0 || a1 == 1 || a1 == 2 || a1 == 3) {
++                o->oExclamationBoxSpawnedObj = sp1C;
++            }
++
+             sp1C->oVelY = 20.0f;
+             sp1C->oForwardVel = 3.0f;
+             sp1C->oMoveAngleYaw = gMarioObject->oMoveAngleYaw;
++
+             o->oBehParams |= a0->unk2 << 24;
++
+             if (a0->model == 122)
+                 o->oFlags |= 0x4000;
+             break;
+@@ -134,7 +142,7 @@ void exclamation_box_act_4(void) {
+     spawn_mist_particles_variable(0, 0, 46.0f);
+     spawn_triangle_break_particles(20, 139, 0.3f, o->oAnimState);
+     create_sound_spawner(SOUND_GENERAL_BREAK_BOX);
+-    if (o->oBehParams2ndByte < 3) {
++    if (o->oBehParams2ndByte <= 3) {
+         o->oAction = 5;
+         cur_obj_hide();
+     } else
+@@ -142,8 +150,13 @@ void exclamation_box_act_4(void) {
+ }
+ 
+ void exclamation_box_act_5(void) {
+-    if (o->oTimer > 300)
++    struct Object *spawned = o->oExclamationBoxSpawnedObj;
++
++    if (spawned == NULL || spawned->activeFlags == 0) {
++        o->oExclamationBoxSpawnedObj = NULL;
++        o->oTimer = 0;
+         o->oAction = 2;
++    }
+ }
+ 
+ void (*sExclamationBoxActions[])(void) = { exclamation_box_act_0, exclamation_box_act_1,
